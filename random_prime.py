@@ -27,7 +27,7 @@ def get_low_probability_prime(n):
 		pc = n_bit_random(n)
 
 		for divisor in primes_list:
-			if pc % divisor == 0 and divisor**2 <= pc:
+			if pc % divisor == 0 and divisor ** 2 <= pc:
 				break
 		else:
 			return pc

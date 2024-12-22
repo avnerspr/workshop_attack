@@ -4,7 +4,7 @@ from binascii import hexlify
 import socket
 
 def start_server(port):
-    s = socket.socket()		 
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)		 
     s.bind(('', port))
 
     key = RSA.generate(1024)
@@ -19,17 +19,15 @@ def start_server(port):
     while True: 
         conn, addr = s.accept()	 
 
-        data = conn.recv(1024)
-        decrypted = cipher_rsa.decrypt(data, sentinel=None)
+        while True:
+            try:
+                data = conn.recv(1024 // 8)
+                decrypted = cipher_rsa.decrypt(data, sentinel=None)
 
-        if(decrypted != None):
-            conn.send(1)
-        else:
-            conn.send(0)
-
-        conn.close()
-
-        break
-
-def main():
-    pass
+                if(decrypted != None):
+                    conn.send(1)
+                else:
+                    conn.send(0)
+            except Exception:
+                print(f"connection closed: {addr}")
+                break
