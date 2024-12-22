@@ -1,6 +1,5 @@
 from typing import Tuple, Set, List
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from sage.all import Matrix
 from math import ceil, floor
 
 def get_public() -> Tuple[int, int]:
