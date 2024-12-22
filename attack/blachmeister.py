@@ -41,7 +41,14 @@ def search_mulitiple_intervals(C: int, s_list: List[int]) -> int:
 
 def search_single_interval(C: int, interval: range, s_list: List[int]):
     a, b = interval.start, interval.stop - 1
-    pass
+    for r_i in range(2 * ceil((b * s_list[-1] - 2 * B) / N), N):
+        s_i = ceil((2 * B + r_i * N) / b)
+        if s_i < (3 * B + r_i * N) / a:
+            s_list.append(s_i)
+            return s_i 
+        
+    raise ValueError("the range of r search need to be bigger")
+        
 
 def update_intervals(M: List[range], s_i: int) -> List[range]:
     M_res: List[range] = []
@@ -91,11 +98,19 @@ def main():
     B = pow(2, 8 * (K - 2)) # the value of the lsb in the second most significant byte of N 
     C = C % N
     
+    # step 1
     C0, s0 = blinding(C)
-    
     s_list = [s0]
     M: List[range] = [range(2 * B, 3 * B)]
-    
+    MAX_ITER = 1_000_000
+    for iteration in range(1, MAX_ITER + 1):
+        # steps 2-4
+        res = algo_iteration(C0, M, s_list, iteration)
+        if res:
+            print(f"{res = }")
+            break
+
+            
     
     
     
