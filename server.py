@@ -5,7 +5,7 @@ import socket
 
 
 def generate_key():
-    key = RSA.generate(1024)
+    key = RSA.generate(512)
     private_data = key.export_key()
     public_data = key.public_key().export_key()
 
@@ -17,6 +17,7 @@ def generate_key():
 
 def start_server(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("", port))
 
     with open("private_key.rsa", "rb") as f:
@@ -32,17 +33,17 @@ def start_server(port):
 
         while True:
             try:
-                data = conn.recv(1024 // 8)
+                data = conn.recv(512 // 8)
                 decrypted = cipher_rsa.decrypt(data, sentinel=None)
 
                 if decrypted != None:
-                    conn.send(1)
+                    conn.send(b"\x01")
                 else:
-                    conn.send(0)
+                    conn.send(b"\x00")
             except Exception:
                 print(f"connection closed: {addr}")
                 break
 
 
 if __name__ == "__main__":
-    start_server()
+    start_server(8001)

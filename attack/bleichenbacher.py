@@ -4,6 +4,10 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from math import ceil, floor
 from oracle import oracle, init_oracle
+from icecream import ic
+
+HOST = "localhost"
+PORT = 8001
 
 
 def get_public() -> Tuple[int, int]:
@@ -18,22 +22,18 @@ def get_cipher() -> int:
         pub_key = RSA.import_key(key_file.read())
     cipher_rsa = PKCS1_v1_5.new(pub_key)
 
-    return cipher_rsa.encrypt(b"hello world")
-
-
-def oracle(val: int) -> bool:
-    pass
+    return bytes_to_long(cipher_rsa.encrypt(b"hello world"))
 
 
 def s_oracle(C: int, s: int) -> bool:
-    return oracle(C * pow(s, E, N) % N)
+    return oracle(C * pow(s, E, N) % N, conn)
 
 
 def blinding(C: int) -> Tuple[int, int]:
-    s0 = 0
-    for s0 in range(0, N):
+    ic("start blinding")
+    for s0 in range(1, N):
         C0 = C * pow(s0, E, N) % N
-        if oracle(C0):
+        if oracle(C0, conn):
             return C0, s0
 
 
@@ -66,22 +66,24 @@ def search_single_interval(C: int, interval: range, s_list: List[int]):
     raise ValueError("the range of r search need to be bigger")
 
 
-def update_intervals(M: List[range], s_i: int) -> List[range]:
+def update_intervals(M: Set[range], s_i: int) -> List[range]:
     M_res: List[range] = []
     for interval in M:
         a, b = interval.start, interval.stop - 1
-        for r in range(ceil((a * s_i - 3 * B + 1) / N), floor((b * s_i - 2 * B) / N)):
+        for r in range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N)):
             pos_sol_range = range(
-                max(a, ceil((2 * B + r * N) / s_i)),
-                min(b, (3 * B - 1 - r * N) // s_i) + 1,
+                max(a, ceil((2 * B + r * N) / s_i)) % N,
+                (min(b, (3 * B - 1 - r * N) // s_i) + 1) % N,
             )
+            ic(pos_sol_range.stop - pos_sol_range.start)
+
             M_res.append(pos_sol_range)
 
     assert len(M_res) >= 1
     return M_res
 
 
-def search(C: int, M: List[range], s_list: List[int], iteration: int):
+def search(C: int, M: Set[range], s_list: List[int], iteration: int):
     if iteration == 1:
         # step 2.a
         search_start(C, s_list)
@@ -92,10 +94,11 @@ def search(C: int, M: List[range], s_list: List[int], iteration: int):
     else:
         assert len(M) == 1
         # step 2.c
-        search_single_interval(C, M[0], s_list)
+        search_single_interval(C, list(M)[0], s_list)
 
 
-def algo_iteration(C: int, M: List[range], s_list: List[int], iteration: int):
+def algo_iteration(C: int, M: Set[range], s_list: List[int], iteration: int):
+    ic(iteration)
     # step 2
     search(C, M, s_list, iteration)
 
@@ -103,14 +106,18 @@ def algo_iteration(C: int, M: List[range], s_list: List[int], iteration: int):
     M = update_intervals(M, s_list[-1])
 
     # step 4
-    if len(M) == 1 and len(M[0]) == 1:
-        return M[0][0] * pow(s_list[0], -1, N) % N  # found solution
+    if len(M) == 1:
+        M_lst = list(M)
+        if len(M_lst[0]) == 1:
+            return M_lst[0][0] * pow(s_list[0], -1, N) % N  # found solution
 
     return False
 
 
 def main():
     global N, E, K, B
+    global conn
+    conn = init_oracle(HOST, PORT)
     C = get_cipher()
     N, E = get_public()
     K = len(long_to_bytes(N))  # TODO better than this
@@ -120,9 +127,9 @@ def main():
     C = C % N
 
     # step 1
-    C0, s0 = blinding(C)
+    C0, s0 = ic(blinding(C))
     s_list = [s0]
-    M: List[range] = [range(2 * B, 3 * B)]
+    M: Set[range] = set([range(2 * B, 3 * B)])
     MAX_ITER = 1_000_000
     for iteration in range(1, MAX_ITER + 1):
         # steps 2-4
