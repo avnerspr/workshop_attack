@@ -2,6 +2,8 @@ from socket import socket, AF_INET, SOCK_STREAM, SO_REUSEADDR
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from icecream import ic
 
+KEY_SIZE = 512
+
 
 def init_oracle(host: str, port: int) -> socket:
     sock = socket(AF_INET, SOCK_STREAM)
@@ -10,8 +12,9 @@ def init_oracle(host: str, port: int) -> socket:
 
 
 def oracle(num: int, sock: socket) -> bool:
-    sock.send(long_to_bytes(num))
-    ic("try oracle")
-    data = ic(sock.recv(1))
+    sendme = long_to_bytes(num, KEY_SIZE // 8)
+    assert len(sendme) == (KEY_SIZE // 8)
+    sock.send(sendme)
+    data = sock.recv(1)
 
     return data[0] == 1

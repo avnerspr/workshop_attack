@@ -4,6 +4,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from math import ceil, floor
 from oracle import oracle, init_oracle
+from disjoint_segments import DisjointSegments
 from icecream import ic
 
 HOST = "localhost"
@@ -22,7 +23,7 @@ def get_cipher() -> int:
         pub_key = RSA.import_key(key_file.read())
     cipher_rsa = PKCS1_v1_5.new(pub_key)
 
-    return bytes_to_long(cipher_rsa.encrypt(b"hello world"))
+    return bytes_to_long(cipher_rsa.encrypt(msg))
 
 
 def s_oracle(C: int, s: int) -> bool:
@@ -38,9 +39,13 @@ def blinding(C: int) -> Tuple[int, int]:
 
 
 def find_next_conforming(C: int, start: int) -> int:
+    ctr = 0
     for s in range(start, N):
+        ctr += 1
         if s_oracle(C, s):
             return s
+        if ctr % 10_000 == 0:
+            ic(ctr)
 
 
 def search_start(C: int, s_list: List[int]) -> int:
@@ -66,24 +71,33 @@ def search_single_interval(C: int, interval: range, s_list: List[int]):
     raise ValueError("the range of r search need to be bigger")
 
 
-def update_intervals(M: Set[range], s_i: int) -> List[range]:
-    M_res: List[range] = []
+def update_intervals(M: DisjointSegments, s_i: int) -> List[range]:
+    M_res = DisjointSegments()
     for interval in M:
         a, b = interval.start, interval.stop - 1
-        for r in range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N)):
+        for r in ic(range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N) + 1)):
             pos_sol_range = range(
-                max(a, ceil((2 * B + r * N) / s_i)) % N,
-                (min(b, (3 * B - 1 - r * N) // s_i) + 1) % N,
+                ic(max(a, ceil((2 * B + r * N) / s_i))),
+                ic((min(b, (((3 * B - 1 - r * N) // s_i) + 1)))),
             )
-            ic(pos_sol_range.stop - pos_sol_range.start)
+            # debug
+            db = [
+                max(a, ceil((2 * B + r * N) / s_i)),
+                (min(b, (((3 * B - 1 - r * N) // s_i) + 1))),
+                N,
+            ]
+            db.sort()
+            ic(db)
 
-            M_res.append(pos_sol_range)
+            M_res.add(pos_sol_range)
+            ic(M_res)
 
     assert len(M_res) >= 1
+    ic(M_res)
     return M_res
 
 
-def search(C: int, M: Set[range], s_list: List[int], iteration: int):
+def search(C: int, M: DisjointSegments, s_list: List[int], iteration: int):
     if iteration == 1:
         # step 2.a
         search_start(C, s_list)
@@ -97,19 +111,21 @@ def search(C: int, M: Set[range], s_list: List[int], iteration: int):
         search_single_interval(C, list(M)[0], s_list)
 
 
-def algo_iteration(C: int, M: Set[range], s_list: List[int], iteration: int):
+def algo_iteration(C: int, M: DisjointSegments, s_list: List[int], iteration: int):
     ic(iteration)
     # step 2
     search(C, M, s_list, iteration)
+    ic(s_list[-1])
 
     # step 3
     M = update_intervals(M, s_list[-1])
 
     # step 4
+    ic(len(M))
     if len(M) == 1:
-        M_lst = list(M)
-        if len(M_lst[0]) == 1:
-            return M_lst[0][0] * pow(s_list[0], -1, N) % N  # found solution
+        M_lst: list[range] = list(iter(M))
+        if len(M_lst[0]) <= 1:
+            return M_lst[0].start * pow(s_list[0], -1, N) % N  # found solution
 
     return False
 
@@ -129,13 +145,15 @@ def main():
     # step 1
     C0, s0 = ic(blinding(C))
     s_list = [s0]
-    M: Set[range] = set([range(2 * B, 3 * B)])
+    M: DisjointSegments = DisjointSegments([range(2 * B, 3 * B)])
     MAX_ITER = 1_000_000
     for iteration in range(1, MAX_ITER + 1):
         # steps 2-4
         res = algo_iteration(C0, M, s_list, iteration)
         if res:
-            print(f"{res = }")
+            ans_num = res * pow(s0, -1, N) % N
+            ans = long_to_bytes(ans_num)
+            print(f"{ans = }")
             break
 
 

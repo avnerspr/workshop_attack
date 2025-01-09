@@ -1,11 +1,22 @@
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from binascii import hexlify
+from connection import Connection
 import socket
+from icecream import ic
+from Crypto.Util.number import bytes_to_long, getPrime, isPrime
+from rsa import check_padding
+
+KEY_SIZE = 512
 
 
 def generate_key():
-    key = RSA.generate(512)
+    p = getPrime(KEY_SIZE // 2)
+    q = getPrime(KEY_SIZE // 2)
+    n = p * q
+    e = 0x10001
+    d = pow(e, -1, (p - 1) * (q - 1))
+    key = RSA.construct((n, e, d, p, q))
     private_data = key.export_key()
     public_data = key.public_key().export_key()
 
@@ -29,21 +40,21 @@ def start_server(port):
     s.listen()
 
     while True:
-        conn, addr = s.accept()
-
+        sock, addr = s.accept()
+        conn = Connection.create_from_socket(sock)
         while True:
             try:
-                data = conn.recv(512 // 8)
-                decrypted = cipher_rsa.decrypt(data, sentinel=None)
-
-                if decrypted != None:
+                data = conn.recv(KEY_SIZE // 8)
+                correct_pad = check_padding(cipher_rsa, data, sentinel=None)
+                if correct_pad:
                     conn.send(b"\x01")
                 else:
                     conn.send(b"\x00")
-            except Exception:
+            except ConnectionResetError:
                 print(f"connection closed: {addr}")
                 break
 
 
 if __name__ == "__main__":
     start_server(8001)
+    # generate_key()
