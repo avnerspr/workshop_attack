@@ -21,7 +21,7 @@ def get_cipher() -> int:
     msg = b"hello_world"
     with open("public_key.rsa", "rb") as key_file:
         pub_key = RSA.import_key(key_file.read())
-    cipher_rsa = PKCS1_v1_5.new(pub_key)
+    cipher_rsa = PKCS1_v1_5.new(pub_key, lambda n: b"\x01" * n) # TODO non deteministic
 
     return bytes_to_long(cipher_rsa.encrypt(msg))
 
@@ -75,25 +75,26 @@ def update_intervals(M: DisjointSegments, s_i: int) -> List[range]:
     M_res = DisjointSegments()
     for interval in M:
         a, b = interval.start, interval.stop - 1
-        for r in ic(range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N) + 1)):
+        for r in range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N) + 1):
             pos_sol_range = range(
-                ic(max(a, ceil((2 * B + r * N) / s_i))),
-                ic((min(b, (((3 * B - 1 - r * N) // s_i) + 1)))),
+                max(a, (2 * B + r * N) // s_i + 1),
+                (min(b, (((3 * B - 1 + r * N) // s_i) + 1))),
             )
             # debug
-            db = [
-                max(a, ceil((2 * B + r * N) / s_i)),
-                (min(b, (((3 * B - 1 - r * N) // s_i) + 1))),
-                N,
-            ]
-            db.sort()
-            ic(db)
+            # db = [
+            #     max(a, ceil((2 * B + r * N) / s_i)),
+            #     (min(b, (((3 * B - 1 + r * N) // s_i) + 1))),
+            #     N,
+            # ]
+            # db.sort()
+            # ic(db)
 
             M_res.add(pos_sol_range)
-            ic(M_res)
+            # ic(M_res)
 
     assert len(M_res) >= 1
     ic(M_res)
+    ic(M_res.size())
     return M_res
 
 
@@ -124,7 +125,7 @@ def algo_iteration(C: int, M: DisjointSegments, s_list: List[int], iteration: in
     ic(len(M))
     if len(M) == 1:
         M_lst: list[range] = list(iter(M))
-        if len(M_lst[0]) <= 1:
+        if M_lst[0].stop - M_lst[0].start <= 1:
             return M_lst[0].start * pow(s_list[0], -1, N) % N  # found solution
 
     return False
@@ -137,9 +138,11 @@ def main():
     C = get_cipher()
     N, E = get_public()
     K = len(long_to_bytes(N))  # TODO better than this
+    ic(K)
     B = pow(
         2, 8 * (K - 2)
     )  # the value of the lsb in the second most significant byte of N
+    ic(B)
     C = C % N
 
     # step 1
@@ -152,7 +155,7 @@ def main():
         res = algo_iteration(C0, M, s_list, iteration)
         if res:
             ans_num = res * pow(s0, -1, N) % N
-            ans = long_to_bytes(ans_num)
+            ans = long_to_bytes(ans_num, 64)
             print(f"{ans = }")
             break
 

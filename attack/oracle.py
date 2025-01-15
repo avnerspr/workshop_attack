@@ -14,7 +14,7 @@ def init_oracle(host: str, port: int) -> socket:
 def oracle(num: int, sock: socket) -> bool:
     sendme = long_to_bytes(num, KEY_SIZE // 8)
     assert len(sendme) == (KEY_SIZE // 8)
-    sock.send(sendme)
+    sock.sendall(sendme)
     data = sock.recv(1)
 
     return data[0] == 1
