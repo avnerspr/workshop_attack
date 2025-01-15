@@ -11,6 +11,9 @@ HOST = "localhost"
 PORT = 8001
 
 
+def ceil_div(x: int, y: int) -> int:
+    return (x + y - 1) // y
+
 def get_public() -> Tuple[int, int]:
     with open("public_key.rsa", "rb") as key_file:
         pub_key = RSA.import_key(key_file.read())
@@ -62,8 +65,8 @@ def search_mulitiple_intervals(C: int, s_list: List[int]) -> int:
 
 def search_single_interval(C: int, interval: range, s_list: List[int]):
     a, b = interval.start, interval.stop - 1
-    for r_i in range(2 * ceil((b * s_list[-1] - 2 * B) / N), N):
-        s_i = ceil((2 * B + r_i * N) / b)
+    for r_i in range(2 * ceil_div(b * s_list[-1] - 2 * B, N), N):
+        s_i = ceil_div(2 * B + r_i * N, b)
         if s_i < (3 * B + r_i * N) / a:
             s_list.append(s_i)
             return s_i
@@ -71,16 +74,16 @@ def search_single_interval(C: int, interval: range, s_list: List[int]):
     raise ValueError("the range of r search need to be bigger")
 
 
-def update_intervals(M: DisjointSegments, s_i: int) -> List[range]:
+def update_intervals(M: DisjointSegments, s_i: int) -> DisjointSegments:
     M_res = DisjointSegments()
-    ic(M)
+    # ic(M)
     for interval in M:
         a, b = interval.start, interval.stop - 1
         r_range = range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N) + 1)
-        ic(r_range)
+        # ic(r_range)
         for r in r_range:
             pos_sol_range = range(
-                max(a, (2 * B + r * N) // s_i + 1),
+                max(a, ceil_div(2 * B + r * N, s_i)),
                 (min(b, (((3 * B - 1 + r * N) // s_i) + 1))),
             )
             # debug
@@ -97,7 +100,6 @@ def update_intervals(M: DisjointSegments, s_i: int) -> List[range]:
 
     assert len(M_res) >= 1
     # ic(M_res)
-    ic(M_res.size())
     return M_res
 
 
@@ -116,16 +118,19 @@ def search(C: int, M: DisjointSegments, s_list: List[int], iteration: int):
 
 
 def algo_iteration(C: int, M: DisjointSegments, s_list: List[int], iteration: int):
-    ic(iteration)
+    # ic(iteration)
     # step 2
     search(C, M, s_list, iteration)
-    ic(s_list[-1])
 
     # step 3
     M = update_intervals(M, s_list[-1])
-    ic(M)
+    if iteration <= 5 or iteration % 50  == 0 or True:
+        ic(iteration)
+        ic(M)
+        ic(len(M))
+        ic(M.size())
+
     # step 4
-    ic(len(M))
     if len(M) == 1:
         M_lst: list[range] = list(iter(M))
         if M_lst[0].stop - M_lst[0].start <= 1:
@@ -149,7 +154,7 @@ def main():
     C = C % N
 
     # step 1
-    C0, s0 = ic(blinding(C))
+    C0, s0 = blinding(C)
     s_list = [s0]
     M: DisjointSegments = DisjointSegments([range(2 * B, 3 * B)])
     MAX_ITER = 1_000_000
