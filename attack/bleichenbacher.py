@@ -73,9 +73,12 @@ def search_single_interval(C: int, interval: range, s_list: List[int]):
 
 def update_intervals(M: DisjointSegments, s_i: int) -> List[range]:
     M_res = DisjointSegments()
+    ic(M)
     for interval in M:
         a, b = interval.start, interval.stop - 1
-        for r in range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N) + 1):
+        r_range = range(((a * s_i - 3 * B + 1) // N), ((b * s_i - 2 * B) // N) + 1)
+        ic(r_range)
+        for r in r_range:
             pos_sol_range = range(
                 max(a, (2 * B + r * N) // s_i + 1),
                 (min(b, (((3 * B - 1 + r * N) // s_i) + 1))),
@@ -93,7 +96,7 @@ def update_intervals(M: DisjointSegments, s_i: int) -> List[range]:
             # ic(M_res)
 
     assert len(M_res) >= 1
-    ic(M_res)
+    # ic(M_res)
     ic(M_res.size())
     return M_res
 
@@ -120,7 +123,7 @@ def algo_iteration(C: int, M: DisjointSegments, s_list: List[int], iteration: in
 
     # step 3
     M = update_intervals(M, s_list[-1])
-
+    ic(M)
     # step 4
     ic(len(M))
     if len(M) == 1:
@@ -128,7 +131,7 @@ def algo_iteration(C: int, M: DisjointSegments, s_list: List[int], iteration: in
         if M_lst[0].stop - M_lst[0].start <= 1:
             return M_lst[0].start * pow(s_list[0], -1, N) % N  # found solution
 
-    return False
+    return False, M
 
 
 def main():
@@ -152,7 +155,7 @@ def main():
     MAX_ITER = 1_000_000
     for iteration in range(1, MAX_ITER + 1):
         # steps 2-4
-        res = algo_iteration(C0, M, s_list, iteration)
+        res, M = algo_iteration(C0, M, s_list, iteration)
         if res:
             ans_num = res * pow(s0, -1, N) % N
             ans = long_to_bytes(ans_num, 64)
