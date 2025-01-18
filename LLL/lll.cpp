@@ -127,6 +127,31 @@ void test_lll(int d, int n)
 }
 
 /**
+ * Performs lll in-place on the given `lattice`.
+ * `lattice` is interpreted as a 2D-array of doubles,
+ * of dimensions `vector_dimension` x `num_of_vectors`
+ *
+ * So accessing the i-th coordinate of the j-th vector would be
+ * `lattice[j * vector_dimension + i]`
+ * */
+extern "C" void lll(double *lattice, int num_of_vectors, int vector_dimension)
+{
+    std::vector<std::vector<double>> lattice_vec;
+    for (int j = 0; j < num_of_vectors; j++) {
+        std::vector<double> vec(lattice + (vector_dimension * j), lattice + (vector_dimension * (j + 1)));
+        lattice_vec.push_back(vec);
+    }
+
+    lllAlgorithm(lattice_vec);
+
+    for (int j = 0; j < num_of_vectors; j++) {
+        for (int i = 0; i < vector_dimension; i++) {
+            lattice[j * vector_dimension + i] = lattice_vec[j][i];
+        }
+    }
+}
+
+/**
  * Main function to demonstrate the LLL algorithm.
  *
  * @return Exit status of the program.
@@ -151,6 +176,17 @@ int main()
 
     std::cout << "Reduced Basis:" << std::endl;
     printMatrix(basis);
+
+    double basis2[] = {
+        1, 2, 3, 4,
+        3, 1, 4, 1,
+        5, 9, 2, 6,
+        5, 3, 5, 8
+    };
+
+    std::cout << "With carrays:\n";
+    lll(basis2, 4, 4);
+    std::cout << "After lll: " << basis2[1] << "\n";
 
     return 0;
 }
