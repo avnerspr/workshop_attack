@@ -17,4 +17,11 @@ def oracle(num: int, sock: socket) -> bool:
     sock.sendall(sendme)
     data = sock.recv(1)
 
+    if data is None:
+        raise ServerClosed
+
     return data[0] == 1
+
+
+class ServerClosed(ConnectionError):
+    pass

@@ -1,5 +1,5 @@
 from attack.attack import Attacker
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
 
 
@@ -13,8 +13,21 @@ class ParllelAttacker:
         self.host = host
         self.ports = ports
     
+
+    def attacker_warper(self, port):
+        attacker = Attacker(self.N, self.E, self.ct, self.host, port, True)
+        return attacker.attack()
+    
+
     def attack(self):
-        for port in self.ports:
-            attacker = Attacker(self.N, self.E, self.ct, self.host, port, True)
-            attack_process = Process(target=attacker.attack, )
+        with Pool(len(self.ports)) as pool:
+            results = pool.map(self.attacker_warper, self.ports)
+
+        range_list = []
+        s_list = []
+
+        for result in results:
+            range_list.append(result[0])
+            s_list.append(result[1])
+
     

@@ -53,6 +53,11 @@ class DisjointSegments(UserSet):
     
     def size(self) -> int:
         return reduce(lambda a, b: a + b, ((r.stop - r.start) for r in self.data))
+    
+    def smallest_inclusive(self) -> range:
+        start = min(val.start for val in self.data)
+        stop = max(val.stop for val in self.data)
+        return range(start, stop)
         
         
 

@@ -2,7 +2,7 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from math import ceil, floor
-from oracle import oracle, init_oracle, KEY_SIZE
+from oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
@@ -108,8 +108,12 @@ class Attacker:
         return M_res
 
     def algo_iteration(self):
-        # step 2
-        self.search()
+
+        try:
+            # step 2
+            self.search()
+        except ServerClosed:
+            return True, self.M.smallest_inclusive()  # ran out of time
 
         # step 3
         self.update_intervals(self.s_list[-1])
@@ -121,20 +125,23 @@ class Attacker:
         if len(self.M) == 1:
             M_lst: list[range] = list(iter(self.M))
             if M_lst[0].stop - M_lst[0].start <= 1:
-                return True, M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N  # found solution
+                answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
+                return True, range(answer, answer + 1)  # found solution
 
         return False, self.M
     
     
-    def attack(self) -> bytes:
+    def attack(self) -> tuple[range, int]:
         self.blinding()
         while True:
             res, ans = self.algo_iteration()
             if res:
-                assert isinstance(ans, int)
-                result = ans
-                ans_num = result * pow(self.s0, -1, self.N) % self.N
-                ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-                print(f"{ans = }")
-                return ans
+                assert isinstance(ans, range)
+
+                # result = ans
+                # ans_num = result * pow(self.s0, -1, self.N) % self.N
+                # ans = long_to_bytes(ans_num, KEY_SIZE // 8)
+                # print(f"{ans = }")
+
+                return ans, self.s0
             self.iteration += 1

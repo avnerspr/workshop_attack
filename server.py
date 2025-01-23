@@ -64,9 +64,15 @@ if __name__ == "__main__":
                     prog='server.py',
                     description='Starts a multithreaded server that is vulnerable to the Bleichenbacher attack',
                     epilog='Try running and see if you can decrypt the message')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Displays when a message is PKCS conforming')
-    parser.add_argument('-c', '--count', help='Number of threads to run, defaults to 5')
+    parser.add_argument('-v', '--verbose', action='store_true', help='displays when a message is PKCS conforming')
+    parser.add_argument('-c', '--count', help='number of threads to run, defaults to 5')
+    parser.add_argument('-k', '--keygen', action='store_true', help='make the server generate a new key')
     args = parser.parse_args()
+
+    if args.keygen:
+        generate_key()
+        print("generated key")
+        
     thread_list : list[threading.Thread]= []
 
     count = 5
