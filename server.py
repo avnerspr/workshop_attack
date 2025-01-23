@@ -7,7 +7,7 @@ from icecream import ic
 from Crypto.Util.number import bytes_to_long, getPrime, isPrime
 from rsa import check_padding
 
-KEY_SIZE = 512
+KEY_SIZE = 1024
 
 
 def generate_key():
@@ -56,5 +56,6 @@ def start_server(port):
 
 
 if __name__ == "__main__":
+    generate_key()
+    print("key genarated")
     start_server(8001)
-    # generate_key()

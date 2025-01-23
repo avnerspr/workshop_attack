@@ -1,6 +1,6 @@
 import random
 from Crypto.Util.number import bytes_to_long, getPrime, isPrime
-
+from icecream import ic
 
 def check_padding(self, ciphertext, sentinel, expected_pt_len=0):
     r"""Decrypt a PKCS#1 v1.5 ciphertext.
@@ -56,6 +56,5 @@ def check_padding(self, ciphertext, sentinel, expected_pt_len=0):
 
     # Step 2b (RSADP) and Step 2c (I2OSP)
     em = self._key._decrypt_to_bytes(ct_int)
-
     # Step 3 (not constant time when the sentinel is not a byte string)
     return em[0:2] == b"\x00\x02"

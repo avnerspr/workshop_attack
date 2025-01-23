@@ -2,7 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM, SO_REUSEADDR
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from icecream import ic
 
-KEY_SIZE = 512
+KEY_SIZE = 1024
 
 
 def init_oracle(host: str, port: int) -> socket:
