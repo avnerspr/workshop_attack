@@ -2,6 +2,25 @@ from attack import Attacker
 from multiprocessing import Process, Pool
 from sage.all import matrix, ZZ, IntegralLattice
 from icecream import ic
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_v1_5
+from Crypto.Util.number import long_to_bytes, bytes_to_long
+
+
+def get_public() -> tuple[int, int]:
+    with open("public_key.rsa", "rb") as key_file:
+        pub_key = RSA.import_key(key_file.read())
+    return pub_key.n, pub_key.e
+
+
+def get_cipher() -> int:
+    msg = b"hello_world"
+    with open("public_key.rsa", "rb") as key_file:
+        pub_key = RSA.import_key(key_file.read())
+    cipher_rsa = PKCS1_v1_5.new(pub_key)
+
+    return bytes_to_long(cipher_rsa.encrypt(msg))
+
 
 class ParllelAttacker:
     
@@ -30,6 +49,8 @@ class ParllelAttacker:
         for result in results:
             range_list.append(result[0])
             s_list.append(result[1])
+        
+        return self.conclusion(range_list, s_list)
     
     
 
@@ -46,7 +67,12 @@ class ParllelAttacker:
         
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+    HOST = "localhost"
+    PORTS = [8001, 8002, 8003, 8004, 8005]
+    n, e = get_public()
+    parallel = ParllelAttacker(n, e, get_cipher(), HOST, PORTS)
+    parallel.attack()
 #     m = matrix(ZZ, [[7, 2], [5, 3]])
 #     res, t = ic(m.LLL(transformation = True))
 #     ic(t * m)
