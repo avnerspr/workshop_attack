@@ -50,13 +50,14 @@ class Attacker:
 
     # & maybe for them to do
     def blinding(self) -> tuple[int, int]:
-        for i in range(1, self.N):
-            s0 = randint(1, self.N - 1) if self.random_blinding else i
+        s0 = randint(1, self.N - 1) if self.random_blinding else 1
+        for _ in range(1, self.N):
             self.C = self.ct * pow(s0, self.E, self.N) % self.N
             if self.oracle(self.C):
                 self.s0 = s0
                 self.s_list.append(s0)
                 return self.C, s0
+            s0 = (s0 + 1) % self.N
 
     def find_next_conforming(self, start: int) -> int:
         ctr = 0
@@ -124,7 +125,7 @@ class Attacker:
                 )
 
                 M_res.add(pos_sol_range)
-
+        ic(M_res)
         assert len(M_res) >= 1
         self.M = M_res
         return M_res
