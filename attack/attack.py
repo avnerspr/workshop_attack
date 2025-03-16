@@ -33,9 +33,11 @@ class Attacker:
     def oracle(self, num: int) -> bool:
         return oracle(num, self.conn)
     
+    # & maybe for them to do
     def s_oracle(self, s: int) -> bool:
         return self.oracle(self.C * pow(s, self.E, self.N) % self.N)
     
+    # & maybe for them to do
     def blinding(self) -> tuple[int, int]:
         for i in range(1, self.N):
             s0 = randint(1, self.N - 1) if self.random_blinding else i
@@ -61,12 +63,18 @@ class Attacker:
 
 
     def search_mulitiple_intervals(self) -> int:
+        """
+        This function is used to search for the next s_i in the case where there are multiple intervals in M.
+        """
         s_i = self.find_next_conforming(self.s_list[-1] + 1)
         self.s_list.append(s_i)
         return s_i
 
 
     def search_single_interval(self, interval: range):
+        """
+        This function is used to search for the next s_i in the case where there is only one interval in M.
+        """
         a, b = interval.start, interval.stop - 1
         for r_i in range(2 * ceil_div(b * self.s_list[-1] - 2 * self.B, self.N), self.N):
             s_i = ceil_div(2 * self.B + r_i * self.N, b)

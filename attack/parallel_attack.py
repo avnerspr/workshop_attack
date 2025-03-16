@@ -7,6 +7,7 @@ from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 
+
 def get_public() -> tuple[int, int]:
     with open("public_key.rsa", "rb") as key_file:
         pub_key = RSA.import_key(key_file.read())
@@ -42,6 +43,7 @@ class ParllelAttacker:
     def attack(self):
         with Pool(len(self.ports)) as pool:
             results = pool.map(self.attacker_warper, self.ports)
+        
 
         range_list = []
         s_list = []
@@ -62,17 +64,18 @@ class ParllelAttacker:
             vec[i] = self.N
         
         m = matrix(ZZ, [v0] + middle + [vf])
+        ic(m)
         trans, _ = ic(m.LLL())
         
         
 
 
 if __name__ == "__main__":
-    HOST = "localhost"
-    PORTS = [8001, 8002, 8003, 8004, 8005]
-    n, e = get_public()
-    parallel = ParllelAttacker(n, e, get_cipher(), HOST, PORTS)
-    parallel.attack()
-#     m = matrix(ZZ, [[7, 2], [5, 3]])
-#     res, t = ic(m.LLL(transformation = True))
-#     ic(t * m)
+    # HOST = "localhost"
+    # PORTS = [8001, 8002, 8003, 8004, 8005]
+    # n, e = get_public()
+    # parallel = ParllelAttacker(n, e, get_cipher(), HOST, PORTS)
+    # parallel.attack()
+    m = matrix(ZZ, [[7, 2], [5, 3]])
+    res, t = ic(m.LLL(transformation = True))
+    ic(t * m)
