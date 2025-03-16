@@ -50,6 +50,9 @@ def start_server(port, verbose):
         while True:
             try:
                 data = conn.recv(KEY_SIZE // 8)
+                if data is None:
+                    print(f"server: {port} closed: {addr}")
+                    break
                 num_of_messages += 1
                 correct_pad = check_padding(cipher_rsa, data, sentinel=None)
                 if correct_pad:
@@ -62,8 +65,8 @@ def start_server(port, verbose):
                     conn.send(b"\x00")
                 if verbose and (num_of_messages % 10000 == 0):
                     print(f"server: {port} got {num_of_messages} messages")
-            except ConnectionResetError:
-                print(f"connection closed: {addr}")
+            except ConnectionError:
+                print(f"server: {port} connection error: {addr}")
                 break
 
 
