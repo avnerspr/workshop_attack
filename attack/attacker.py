@@ -38,7 +38,7 @@ class Attacker:
         )  # the value of the lsb in the second most significant byte of N
         self.random_blinding = random_blinding
         self.s_list: list[int] = []
-        self.M: DisjointSegments = DisjointSegments([range(2 * self.B, 3 * self.B)])
+        self.M: DisjointSegments = DisjointSegments([range(2 * self.B, 3 * self.B)]) # ! dangerous
         self.iteration = iteration
 
     def oracle(self, num: int) -> bool:
