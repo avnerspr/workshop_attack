@@ -4,7 +4,11 @@ from icecream import ic
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Util.number import long_to_bytes, bytes_to_long
+from LLL.lll import LLLWrapper
+from pathlib import Path
 
+LLL = LLLWrapper(Path("attack/LLL/liblll.so")) # ! maybe should return a list[list[int]] instead of list[list[float]]
+lll = LLL.lll
 
 def get_public() -> tuple[int, int]:
     with open("public_key.rsa", "rb") as key_file:
@@ -61,18 +65,26 @@ class ParllelAttacker:
         for i, vec in enumerate(middle):
             vec[i] = self.N
 
-        m = matrix(ZZ, [v0] + middle + [vf])
-        ic(m)
-        trans, _ = ic(m.LLL())
+        M =  [v0] + middle + [vf]
+        ic(M)
+        reduced_basis =  lll(M).sort(key=vec_norm)
+        ic(reduced_basis)
+        res = reduced_basis[1]
+        ic(res)
+        
+
+def vec_norm(vec: list[int]) -> int:
+    return sum(x*x for x in vec)
 
 
 if __name__ == "__main__":
-    HOST = "localhost"
-    PORTS = [8001, 8002, 8003, 8004, 8005]
-    n, e = get_public()
-    ic("got public")
-    parallel = ParllelAttacker(n, e, get_cipher(), HOST, PORTS)
-    parallel.attack()
-    # m = matrix(ZZ, [[7, 2], [5, 3]])
+    # HOST = "localhost"
+    # PORTS = [8001, 8002, 8003, 8004, 8005]
+    # n, e = get_public()
+    # ic("got public")
+    # parallel = ParllelAttacker(n, e, get_cipher(), HOST, PORTS)
+    # parallel.attack()
+    m = [[7, 2], [5, 3]]
+    ic(lll(m))
     # res, t = ic(m.LLL(transformation = True))
     # ic(t * m)
