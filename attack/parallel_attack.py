@@ -49,6 +49,7 @@ class ParllelAttacker:
             results = pool.map(self.attacker_warper, self.ports)
 
         ic("got results")
+        ic(results)
 
         range_list = []
         s_list = []
