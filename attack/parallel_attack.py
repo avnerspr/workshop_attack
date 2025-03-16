@@ -32,7 +32,9 @@ class ParllelAttacker:
         self.ports = ports
 
     def attacker_warper(self, port):
+        ic("in attacker wrapper")
         attacker: Attacker = Attacker(self.N, self.E, self.ct, self.host, port, True)
+        ic("created attacker")
         return attacker.attack()
 
     def attack(self):
@@ -72,6 +74,7 @@ if __name__ == "__main__":
     n, e = get_public()
     ic("got public")
     parallel = ParllelAttacker(n, e, get_cipher(), HOST, PORTS)
+    ic("created parallel attacker")
     parallel.attack()
     # m = matrix(ZZ, [[7, 2], [5, 3]])
     # res, t = ic(m.LLL(transformation = True))

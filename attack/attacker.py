@@ -7,13 +7,24 @@ from disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
 
+
 def ceil_div(x: int, y: int) -> int:
     return (x + y - 1) // y
+
 
 class Attacker:
     pass
 
-    def __init__(self, N: int, E: int, ct: int, host: str, port: int, random_blinding: bool=False, iteration: int = 1) -> None:
+    def __init__(
+        self,
+        N: int,
+        E: int,
+        ct: int,
+        host: str,
+        port: int,
+        random_blinding: bool = False,
+        iteration: int = 1,
+    ) -> None:
         self.N = N
         self.E = E
         self.ct = ct
@@ -23,20 +34,20 @@ class Attacker:
         self.conn = init_oracle(host, port)
         self.K = len(long_to_bytes(N))
         self.B = pow(
-        2, 8 * (self.K - 2)
+            2, 8 * (self.K - 2)
         )  # the value of the lsb in the second most significant byte of N
         self.random_blinding = random_blinding
         self.s_list: list[int] = []
         self.M: DisjointSegments = DisjointSegments([range(2 * self.B, 3 * self.B)])
         self.iteration = iteration
-        
+
     def oracle(self, num: int) -> bool:
         return oracle(num, self.conn)
-    
+
     # & maybe for them to do
     def s_oracle(self, s: int) -> bool:
         return self.oracle(self.C * pow(s, self.E, self.N) % self.N)
-    
+
     # & maybe for them to do
     def blinding(self) -> tuple[int, int]:
         for i in range(1, self.N):
@@ -46,7 +57,7 @@ class Attacker:
                 self.s0 = s0
                 self.s_list.append(s0)
                 return self.C, s0
-    
+
     def find_next_conforming(self, start: int) -> int:
         ctr = 0
         for s in range(start, self.N):
@@ -55,12 +66,11 @@ class Attacker:
                 return s
             if ctr % 10_000 == 0:
                 ic(ctr)
-    
+
     def search_start(self) -> int:
         s1 = self.find_next_conforming(self.N // (3 * self.B) + 1)
         self.s_list.append(s1)
         return s1
-
 
     def search_mulitiple_intervals(self) -> int:
         """
@@ -70,13 +80,14 @@ class Attacker:
         self.s_list.append(s_i)
         return s_i
 
-
     def search_single_interval(self, interval: range):
         """
         This function is used to search for the next s_i in the case where there is only one interval in M.
         """
         a, b = interval.start, interval.stop - 1
-        for r_i in range(2 * ceil_div(b * self.s_list[-1] - 2 * self.B, self.N), self.N):
+        for r_i in range(
+            2 * ceil_div(b * self.s_list[-1] - 2 * self.B, self.N), self.N
+        ):
             s_i = ceil_div(2 * self.B + r_i * self.N, b)
             if s_i * a < (3 * self.B + r_i * self.N):
                 if self.s_oracle(s_i):
@@ -84,7 +95,7 @@ class Attacker:
                     return s_i
 
         raise ValueError("the range of r search need to be bigger")
-    
+
     def search(self):
         if self.iteration == 1:
             # step 2.a
@@ -102,7 +113,10 @@ class Attacker:
         M_res = DisjointSegments()
         for interval in self.M:
             a, b = interval.start, interval.stop - 1
-            r_range = range(((a * s_i - 3 * self.B + 1) // self.N), ((b * s_i - 2 * self.B) // self.N) + 1)
+            r_range = range(
+                ((a * s_i - 3 * self.B + 1) // self.N),
+                ((b * s_i - 2 * self.B) // self.N) + 1,
+            )
             for r in r_range:
                 pos_sol_range = range(
                     max(a, ceil_div(2 * self.B + r * self.N, s_i)),
@@ -125,7 +139,7 @@ class Attacker:
 
         # step 3
         self.update_intervals(self.s_list[-1])
-        if self.iteration <= 5 or self.iteration % 50  == 0:
+        if self.iteration <= 5 or self.iteration % 50 == 0:
             ic(self.iteration)
             ic(self.M.size())
 
@@ -137,10 +151,11 @@ class Attacker:
                 return True, range(answer, answer + 1)  # found solution
 
         return False, self.M
-    
-    
+
     def attack(self) -> tuple[range, int]:
+        ic("started attack")
         self.blinding()
+        ic("did blinding")
         while True:
             res, ans = self.algo_iteration()
             if res:
