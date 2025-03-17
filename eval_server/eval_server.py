@@ -1,6 +1,8 @@
+"""Eval server module."""
+
 import json
 import socketserver
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, Tuple
 from dataclasses import dataclass
 
 
@@ -8,7 +10,7 @@ from dataclasses import dataclass
 class TestCase:
     """Represents a test case with a validation function and associated metadata."""
 
-    tester: Callable[[str], bool]
+    tester: Callable[[str], Tuple[bool, str]]
     metadata: Dict[str, Any]
 
 
@@ -27,7 +29,10 @@ class EvalServer(socketserver.TCPServer):
         self.port: int = port
 
     def add_test(
-        self, name: str, tester: Callable[[str], bool], metadata: Dict[str, Any]
+        self,
+        name: str,
+        tester: Callable[[str], Tuple[bool, str]],
+        metadata: Dict[str, Any],
     ) -> None:
         """Registers a new test case with a given name, validation function, and metadata.
 
@@ -57,18 +62,23 @@ class EvalServer(socketserver.TCPServer):
         if test_name in self.tests:
             test_case: TestCase = self.tests[test_name]
             try:
-                correct: bool = test_case.tester(answer)
+                correct, message = test_case.tester(answer)
                 self.results.setdefault(player, {})[test_name] = correct
                 self.save_results()
-                return {"test": test_name, "correct": correct}
+                return {"test": test_name, "correct": correct, "message": message}
             except Exception as e:
                 return {"test": test_name, "error": str(e)}
         return {"test": test_name, "error": "Test not found"}
 
     def run(self) -> None:
-        """Starts the server and listens for incoming player submissions."""
+        """Starts the server and listens for incoming player submissions, handling shutdown gracefully."""
         print(f"Server running on {self.host}:{self.port}")
-        self.serve_forever()
+        try:
+            self.serve_forever()
+        except KeyboardInterrupt:
+            print("\nShutting down server gracefully...")
+            self.server_close()  # Closes the socket
+            print("Server stopped.")
 
 
 class EvalRequestHandler(socketserver.BaseRequestHandler):
@@ -79,6 +89,7 @@ class EvalRequestHandler(socketserver.BaseRequestHandler):
         data: bytes = self.request.recv(1024).strip()
         try:
             request: Dict[str, str] = json.loads(data.decode("utf-8"))
+            assert isinstance(self.server, EvalServer)
             response: Dict[str, Any] = self.server.evaluate(
                 request["player"], request["test"], request["answer"]
             )

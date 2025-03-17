@@ -1,10 +1,11 @@
+from typing import Any
 import socket
 import json
 
-SERVER_ADDRESS = ("localhost", 12345)  # Replace with the actual server address and port
+SERVER_ADDRESS = ("localhost", 9999)  # Replace with the actual server address and port
 
 
-def send_answer(player_name: str, test_name: str, answer: str) -> dict:
+def send_answer(player_name: str, test_name: str, answer: Any) -> dict:
     """
     Sends an answer to the TCP JSON test evaluation server.
 
@@ -18,6 +19,7 @@ def send_answer(player_name: str, test_name: str, answer: str) -> dict:
         Returns an empty dictionary if a connection error occurs.
     """
     try:
+        answer = str(answer)
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             client_socket.connect(SERVER_ADDRESS)
 
