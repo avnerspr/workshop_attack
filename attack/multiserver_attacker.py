@@ -233,6 +233,4 @@ if __name__ == "__main__":
     attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5, True)
     res_range, s0 = attacker.attack()
     res = res_range.start
-    ans_num = res * pow(s0, -1, n) % n
-    ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-    print(f"{ans = }")
+    ic(res)

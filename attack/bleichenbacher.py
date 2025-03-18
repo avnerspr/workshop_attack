@@ -262,15 +262,10 @@ class Attack:
             res, ans = self.algo_iteration()
             if res:
                 assert isinstance(ans, int)
-                result = ans
-                ans_num = result * pow(self.s0, -1, self.N) % self.N
-                ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-                print(f"{ans = }")
-                return ans
+                result = long_to_bytes(ans, KEY_SIZE // 8)
+                ic(result)
+                return result
             self.iteration += 1
-
-
-# class ParellelAttacker:
 
 
 def main():
@@ -279,7 +274,7 @@ def main():
     conn = init_oracle(HOST, PORT)
     C = get_cipher()
     N, E = get_public()
-    K = len(long_to_bytes(N))  # TODO better than this
+    K = len(long_to_bytes(N))
     B = pow(
         2, 8 * (K - 2)
     )  # the value of the lsb in the second most significant byte of N
@@ -295,10 +290,8 @@ def main():
         res, M = algo_iteration(C0, M, s_list, iteration)
         if res:
             assert isinstance(M, int)
-            result = M
-            ans_num = result * pow(s0, -1, N) % N
-            ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-            print(f"{ans = }")
+            result = long_to_bytes(M, KEY_SIZE // 8)
+            ic(result)
             break
 
 
