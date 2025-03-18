@@ -7,6 +7,7 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 from LLL.lll import LLLWrapper
 from pathlib import Path
 from socket import SHUT_RDWR
+from sage.all import matrix, ZZ
 
 
 LLL = LLLWrapper(
@@ -74,13 +75,15 @@ class ParllelAttacker:
         for i, vec in enumerate(middle):
             vec[i] = self.N
 
-        M = [v0] + middle + [vf]
-        for vec in M:
-            ic(len(vec))
-        reduced_basis = lll(M).sort(key=vec_norm)
+        M = matrix(ZZ, [v0] + middle + [vf])
+        reduced_basis = M.LLL()
+
         ic(reduced_basis)
-        res = reduced_basis[1]
-        ic(res)
+        R = reduced_basis[1]
+        m = (R[0] + vf[0]) * pow(S[0], -1, self.N) % self.N
+        ic(m)
+        ic(long_to_bytes(m, 1024 // 8))
+        return m
 
 
 def vec_norm(vec: list[int]) -> int:
