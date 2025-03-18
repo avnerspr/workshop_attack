@@ -1,4 +1,5 @@
 from attacker import Attacker
+from multiserver_attacker import MultiServerAttacker
 from multiprocessing import Process, Pool
 from icecream import ic
 from Crypto.PublicKey import RSA
@@ -41,14 +42,17 @@ class ParllelAttacker:
         self.host = host
         self.ports = ports
 
-    def attacker_warper(self, port):
+    def attacker_warper(self, port) -> tuple[range, int]:
         ic("in attacker wrapper")
         attacker: Attacker = Attacker(self.N, self.E, self.ct, self.host, port, True)
         ic("created attacker")
         result = attacker.attack()
         return result
 
-    def attack(self):
+    def attack(self) -> int:
+        """
+        Attack the server using multiple attackers
+        """
         with Pool(len(self.ports)) as pool:
             results = pool.map(self.attacker_warper, self.ports)
 
@@ -65,6 +69,9 @@ class ParllelAttacker:
         return self.conclusion(range_list, s_list)
 
     def conclusion(self, ranges: list[range], S: list[int]) -> int:
+        """
+        Conclusion of the attack, using the LLL algorithm to find the plaintext from the information gathered
+        """
         v0 = S + [0]
         vf = [r.start for r in ranges] + [
             (self.N * (self.attacker_count - 1)) // self.attacker_count
@@ -87,12 +94,15 @@ class ParllelAttacker:
 
 
 def vec_norm(vec: list[int]) -> int:
+    """
+    Return the norm of a vector
+    """
     return sum(x * x for x in vec)
 
 
 if __name__ == "__main__":
     HOST = "localhost"
-    PORTS = [8001, 8002, 8003, 8004, 8005]
+    PORTS = [8001, 8002, 8003]
     n, e = get_public()
     ic("got public")
     parallel = ParllelAttacker(n, e, get_cipher(), HOST, PORTS)
