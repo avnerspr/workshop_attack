@@ -13,7 +13,6 @@ def ceil_div(x: int, y: int) -> int:
 
 
 class Attacker:
-    pass
 
     def __init__(
         self,
@@ -99,6 +98,9 @@ class Attacker:
         raise ValueError("the range of r search need to be bigger")
 
     def search(self):
+        """
+        This function is used to search for the next s_i.
+        """
         if self.iteration == 1:
             # step 2.a
             self.search_start()
@@ -112,6 +114,9 @@ class Attacker:
             self.search_single_interval(list(self.M)[0])
 
     def update_intervals(self, s_i: int) -> DisjointSegments:
+        """
+        This function is used to update the intervals in M after finding the next s_i.
+        """
         M_res = DisjointSegments()
         for interval in self.M:
             a, b = interval.start, interval.stop - 1
@@ -134,7 +139,9 @@ class Attacker:
         return M_res
 
     def algo_iteration(self):
-
+        """
+        This function is used to run one iteration of the attack algorithm.
+        """
         try:
             # step 2
             self.search()
