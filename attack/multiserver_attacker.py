@@ -257,4 +257,8 @@ if __name__ == "__main__":
     PORTS = [8001, 8002, 8003, 8004, 8005]
     n, e = get_public()
     attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5)
-    ic(attacker.attack())
+    res_range, s0 = attacker.attack()
+    res = res_range.start
+    ans_num = res * pow(s0, -1, n) % n
+    ans = long_to_bytes(ans_num, KEY_SIZE // 8)
+    print(f"{ans = }")
