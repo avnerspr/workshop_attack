@@ -6,7 +6,7 @@ from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from LLL.lll import LLLWrapper
 from pathlib import Path
-from socket import socket
+from socket import SHUT_RDWR
 
 
 LLL = LLLWrapper(
@@ -45,8 +45,6 @@ class ParllelAttacker:
         attacker: Attacker = Attacker(self.N, self.E, self.ct, self.host, port, True)
         ic("created attacker")
         result = attacker.attack()
-        attacker.conn.shutdown(socket.SHUT_RDWR)
-        attacker.conn.close()
         return result
 
     def attack(self):
@@ -71,13 +69,14 @@ class ParllelAttacker:
             (self.N * (self.attacker_count - 1)) // self.attacker_count
         ]
         middle = [
-            ([0] * self.attacker_count).copy() for _ in range(self.attacker_count)
+            ([0] * (self.attacker_count + 1)).copy() for _ in range(self.attacker_count)
         ]
         for i, vec in enumerate(middle):
             vec[i] = self.N
 
         M = [v0] + middle + [vf]
-        ic(M)
+        for vec in M:
+            ic(len(vec))
         reduced_basis = lll(M).sort(key=vec_norm)
         ic(reduced_basis)
         res = reduced_basis[1]

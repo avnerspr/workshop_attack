@@ -50,7 +50,7 @@ def start_server(port, verbose):
         while True:
             try:
                 data = conn.recv(KEY_SIZE // 8)
-                if data is None:
+                if not data:
                     print(f"server: {port} closed: {addr}")
                     break
                 num_of_messages += 1
