@@ -113,14 +113,18 @@ class Attacker:
 
     
     def search_iterator(self, iterator: Iterator, chunk_size: int=1000) -> int:
-        
-        with ThreadPoolExecutor(len(self.conns)) as executor:
-            for batch in batched(iterator, chunk_size):
-                results = executor.map(self.s_oracle, batch)
-                for result, query in results:
-                    if result:
-                        executor.shutdown(cancel_futures=True)
-                        return query
+        if self.iteration <= 10:
+            with ThreadPoolExecutor(len(self.conns)) as executor:
+                for batch in batched(iterator, chunk_size):
+                    results = executor.map(self.s_oracle, batch)
+                    for result, query in results:
+                        if result:
+                            executor.shutdown(cancel_futures=True)
+                            return query
+        else:
+            for query in iterator:
+                if self.s_oracle(query)[0]:
+                    return query
 
         raise ValueError("Iterator search failed")
         
@@ -254,5 +258,3 @@ if __name__ == "__main__":
     n, e = get_public()
     attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5)
     ic(attacker.attack())
-    
-    
