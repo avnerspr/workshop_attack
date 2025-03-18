@@ -173,7 +173,7 @@ class Attacker:
         This function is used to update the intervals in M after finding the next s_i.
         """
         s_i = s_i % self.N
-        M_res = DisjointSegments([range(2 * self.B, 3 * self.B)])
+        M_res = DisjointSegments()
         for interval in self.M:
             a, b = interval.start, interval.stop - 1
             r_range = range(
@@ -183,7 +183,7 @@ class Attacker:
             for r in r_range:
                 pos_sol_range = range(
                     max(a, ceil_div(2 * self.B + r * self.N, s_i)),
-                    (min(b, (((3 * self.B - 1 + r * self.N) // s_i) + 1))),
+                    (min(b, (((3 * self.B - 1 + r * self.N) // s_i))) + 1),
                 )
 
                 M_res.add(pos_sol_range)
@@ -197,7 +197,7 @@ class Attacker:
         """
         try:
             # step 2
-            ic(self.search())
+            self.search()
         except ServerClosed:
             return True, self.M.smallest_inclusive()  # ran out of time
 
