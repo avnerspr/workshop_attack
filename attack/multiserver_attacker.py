@@ -24,6 +24,7 @@ def batched(iterable, n):
     while batch := (islice(it, n)):  # Collect n items at a time
         yield batch
 
+
 # async def async_s_generator_ab(start=1) -> int:
 #     """Generates `s` values dynamically without predefining a range."""
 #     s = start
@@ -39,11 +40,8 @@ def batched(iterable, n):
 #         s += 1   # Increment for the next iteration
 
 
-
-
-
 # class QueryThread(Thread):
-    
+
 #     def __init__(self, num: int, conn_index: int, result: list[bool]) -> None:
 #         super().__init__()
 #         self.num = num
@@ -52,6 +50,7 @@ def batched(iterable, n):
 
 #     def run(self) -> None:
 #         self.result.append(oracle(self.num, self.conn_index))
+
 
 class Attacker:
 
@@ -107,12 +106,11 @@ class Attacker:
         self.s_list.append(s0)
         self.C = self.ct * pow(s0, self.E, self.N) % self.N
         return self.C, s0
-    
-    def find_next_conforming(self, start: int, chunk_size: int=1000) -> int:
+
+    def find_next_conforming(self, start: int, chunk_size: int = 1000) -> int:
         return self.search_iterator(count(start), chunk_size)
 
-    
-    def search_iterator(self, iterator: Iterator, chunk_size: int=1000) -> int:
+    def search_iterator(self, iterator: Iterator, chunk_size: int = 1000) -> int:
         if self.iteration <= 10:
             with ThreadPoolExecutor(len(self.conns)) as executor:
                 for batch in batched(iterator, chunk_size):
@@ -127,7 +125,6 @@ class Attacker:
                     return query
 
         raise ValueError("Iterator search failed")
-        
 
     def search_start(self, chunk_size=1000) -> int:
         """
@@ -145,16 +142,20 @@ class Attacker:
         self.s_list.append(s_i)
         return s_i
 
-    def search_single_interval(self, interval: range, chunk_size: int=1000) -> int:
+    def search_single_interval(self, interval: range, chunk_size: int = 1000) -> int:
         """
         This function is used to search for the next s_i in the case where there is only one interval in M.
         """
         a, b = interval.start, interval.stop - 1
-        iterator = chain.from_iterable(range((2 * self.B + r_i * self.N)// b, ceil_div(3 * self.B + r_i * self.N, a)) for r_i in count(2 * ceil_div(b * self.s_list[-1] - 2 * self.B, self.N)))
+        iterator = chain.from_iterable(
+            range(
+                (2 * self.B + r_i * self.N) // b, ceil_div(3 * self.B + r_i * self.N, a)
+            )
+            for r_i in count(2 * ceil_div(b * self.s_list[-1] - 2 * self.B, self.N))
+        )
         s_i = self.search_iterator(iterator, chunk_size)
         self.s_list.append(s_i)
         return s_i
-
 
     def search(self) -> int:
         """
@@ -238,11 +239,13 @@ class Attacker:
                 return ans, self.s0
             self.iteration += 1
 
+
 # ! only for testing
 def get_public() -> tuple[int, int]:
     with open("public_key.rsa", "rb") as key_file:
         pub_key = RSA.import_key(key_file.read())
     return pub_key.n, pub_key.e
+
 
 def get_cipher() -> int:
     msg = b"hello_world"
@@ -252,13 +255,12 @@ def get_cipher() -> int:
 
     return bytes_to_long(cipher_rsa.encrypt(msg))
 
-if __name__ == "__main__":    
+
+if __name__ == "__main__":
     HOSTS = ["localhost"] * 5
     PORTS = [8001, 8002, 8003, 8004, 8005]
     n, e = get_public()
     attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5)
     res_range, s0 = attacker.attack()
     res = res_range.start
-    ans_num = res * pow(s0, -1, n) % n
-    ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-    print(f"{ans = }")
+    ic(res)
