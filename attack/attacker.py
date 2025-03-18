@@ -52,14 +52,13 @@ class Attacker:
 
     # & maybe for them to do
     def blinding(self) -> tuple[int, int]:
-        s0 = randint(1, self.N - 1) if self.random_blinding else 1
-        for _ in range(1, self.N):
+        for i in range(1, self.N):
+            s0 = randint(1, self.N - 1) if self.random_blinding else i
             self.C = self.ct * pow(s0, self.E, self.N) % self.N
             if self.oracle(self.C):
                 self.s0 = s0
                 self.s_list.append(s0)
                 return self.C, s0
-            s0 = (s0 + 1) % self.N
 
     def find_next_conforming(self, start: int) -> int:
         ctr = 0
@@ -127,8 +126,10 @@ class Attacker:
                 )
 
                 M_res.add(pos_sol_range)
-        ic(M_res)
-        assert len(M_res) >= 1
+
+        if not (len(M_res) >= 1):
+            ic(M_res)
+            raise AssertionError
         self.M = M_res
         return M_res
 
@@ -137,23 +138,24 @@ class Attacker:
         try:
             # step 2
             self.search()
+
+            # step 3
+            self.update_intervals(self.s_list[-1])
+            if self.iteration <= 5 or self.iteration % 50 == 0:
+                ic(self.iteration)
+                ic(self.M.size())
+
+            # step 4
+            if len(self.M) == 1:
+                M_lst: list[range] = list(iter(self.M))
+                if M_lst[0].stop - M_lst[0].start <= 1:
+                    answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
+                    return True, range(answer, answer + 1)  # found solution
+
+            return False, self.M
+
         except ServerClosed:
             return True, self.M.smallest_inclusive()  # ran out of time
-
-        # step 3
-        self.update_intervals(self.s_list[-1])
-        if self.iteration <= 5 or self.iteration % 50 == 0:
-            ic(self.iteration)
-            ic(self.M.size())
-
-        # step 4
-        if len(self.M) == 1:
-            M_lst: list[range] = list(iter(self.M))
-            if M_lst[0].stop - M_lst[0].start <= 1:
-                answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
-                return True, range(answer, answer + 1)  # found solution
-
-        return False, self.M
 
     def attack(self) -> tuple[range, int]:
         ic("started attack")

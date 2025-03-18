@@ -6,6 +6,8 @@ from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from LLL.lll import LLLWrapper
 from pathlib import Path
+from socket import socket
+
 
 LLL = LLLWrapper(
     Path("attack/LLL/liblll.so")
@@ -42,7 +44,10 @@ class ParllelAttacker:
         ic("in attacker wrapper")
         attacker: Attacker = Attacker(self.N, self.E, self.ct, self.host, port, True)
         ic("created attacker")
-        return attacker.attack()
+        result = attacker.attack()
+        attacker.conn.shutdown(socket.SHUT_RDWR)
+        attacker.conn.close()
+        return result
 
     def attack(self):
         with Pool(len(self.ports)) as pool:
