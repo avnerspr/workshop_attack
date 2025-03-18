@@ -6,6 +6,7 @@ from oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
+from socket import SHUT_RDWR
 
 
 def ceil_div(x: int, y: int) -> int:
@@ -127,7 +128,7 @@ class Attacker:
             for r in r_range:
                 pos_sol_range = range(
                     max(a, ceil_div(2 * self.B + r * self.N, s_i)),
-                    (min(b, (((3 * self.B - 1 + r * self.N) // s_i) )) + 1),
+                    (min(b, (((3 * self.B - 1 + r * self.N) // s_i))) + 1),
                 )
 
                 M_res.add(pos_sol_range)
@@ -177,6 +178,7 @@ class Attacker:
                 # ans_num = result * pow(self.s0, -1, self.N) % self.N
                 # ans = long_to_bytes(ans_num, KEY_SIZE // 8)
                 # print(f"{ans = }")
+                self.conn.shutdown(SHUT_RDWR)
                 self.conn.close()
                 return ans, self.s0
             self.iteration += 1
