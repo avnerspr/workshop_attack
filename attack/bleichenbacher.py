@@ -84,7 +84,7 @@ def update_intervals(M: DisjointSegments, s_i: int, iteration: int) -> DisjointS
         for r in r_range:
             pos_sol_range = range(
                 max(a, ceil_div(2 * B + r * N, s_i)),
-                (min(b, (((3 * B - 1 + r * N) // s_i) + 1))),
+                (min(b, (((3 * B - 1 + r * N) // s_i))) + 1),
             )
 
             M_res.add(pos_sol_range)

@@ -48,7 +48,7 @@ class DisjointSegments(UserSet):
             return True
         return False
 
-    def add(self, item: range):
+    def add(self, item: range) -> None:
         """
         Adds a range to the disjoint set. If the range intersects with any of the existing ranges, it will merge them.
         """
