@@ -7,8 +7,11 @@ from disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from itertools import chain, count, islice, cycle
+from itertools import chain, count, islice, cycle, zip_longest
 from typing import Iterator
+import sys
+import os
+import textwrap
 
 
 def ceil_div(x: int, y: int) -> int:
@@ -86,6 +89,7 @@ class Attacker:
         )  # the set of possible solutions
         self.iteration = iteration
         self.conn_cycler = cycle(self.conns)
+        self.last_print = 0
 
     def oracle(self, num: int) -> bool:
         """
@@ -196,6 +200,20 @@ class Attacker:
         self.M = M_res
         return M_res
 
+    def cyber_print(self, to_print: str, last_print: int):
+        terminal_width = os.get_terminal_size().columns
+        wrapped_text = textwrap.wrap(to_print, width=terminal_width)
+        num_rows = len(wrapped_text)
+
+        for _ in range(last_print):
+            sys.stdout.write("\033[A\033[K")
+        sys.stdout.flush()
+
+        for line in wrapped_text:
+            print(line)
+
+        return num_rows
+
     def algo_iteration(self):
         """
         This function is used to run one iteration of the attack algorithm.
@@ -208,16 +226,25 @@ class Attacker:
 
         # step 3
         self.update_intervals(self.s_list[-1])
+        # self.last_print = self.cyber_print(
+        #     +str(
+        #         long_to_bytes(
+        #             (self.M.tolist()[0].start * pow(self.s0, -1, self.N)) % self.N
+        #         )
+        #     ),
+        #     self.last_print,
+        # )
+
         if self.iteration <= 5 or self.iteration % 50 == 0:
             ic(self.iteration)
-            ic(self.M.size())
+        # ic(self.M.size())
 
         # step 4
         if len(self.M) == 1:
             M_lst: list[range] = list(iter(self.M))
             if M_lst[0].stop - M_lst[0].start <= 1:
-                answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
-                return True, range(answer, answer + 1)  # found solution
+                # answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
+                return True, M_lst[0]  # found solution
 
         return False, self.M
 
@@ -236,6 +263,8 @@ class Attacker:
                 # print(f"{ans = }")
                 for conn in self.conns:
                     conn.close()
+                # ic(len(self.s_list))
+                ic(ans, self.s0)
                 return ans, self.s0
             self.iteration += 1
 
@@ -248,7 +277,7 @@ def get_public() -> tuple[int, int]:
 
 
 def get_cipher() -> int:
-    msg = b"hello_world"
+    msg = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent quis tortor eget lacus viverra tristique pharetra. "
     with open("public_key.rsa", "rb") as key_file:
         pub_key = RSA.import_key(key_file.read())
     cipher_rsa = PKCS1_v1_5.new(pub_key)
@@ -260,7 +289,7 @@ if __name__ == "__main__":
     HOSTS = ["localhost"] * 5
     PORTS = [8001, 8002, 8003, 8004, 8005]
     n, e = get_public()
-    attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5)
+    attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5, random_blinding=True)
     res_range, s0 = attacker.attack()
     res = res_range.start
-    ic(res)
+    # ic(res)

@@ -157,8 +157,8 @@ class Attacker:
             if len(self.M) == 1:
                 M_lst: list[range] = list(iter(self.M))
                 if M_lst[0].stop - M_lst[0].start <= 1:
-                    answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
-                    return True, range(answer, answer + 1)  # found solution
+                    # answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
+                    return True, M_lst[0]  # found solution
 
             return False, self.M
 

@@ -1,14 +1,15 @@
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
-from binascii import hexlify
 from connection import Connection
 import socket
 from icecream import ic
 from Crypto.Util.number import bytes_to_long, getPrime, isPrime
 from rsa import check_padding
-import threading
 import argparse
-from multiprocessing import Process, Pool
+import multiprocessing
+from time import sleep
+import os
+import signal
 
 
 KEY_SIZE = 1024
@@ -30,7 +31,7 @@ def generate_key():
         f.write(public_data)
 
 
-def start_server(port, verbose):
+def start_server(port: int, verbose: bool):
     num_of_messages: int = 0
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -50,6 +51,7 @@ def start_server(port, verbose):
         while True:
             try:
                 data = conn.recv(KEY_SIZE // 8)
+                sleep(0.001)
                 if not data:
                     print(f"server: {port} closed: {addr}")
                     break
@@ -70,6 +72,14 @@ def start_server(port, verbose):
                 break
 
 
+def stop_servers_after_delay(server_pids: list[int], delay: int):
+    sleep(delay)  # Wait for X seconds before killing the processes
+
+    # Kill each worker process using the PID
+    for pid in server_pids:
+        os.kill(pid, signal.SIGTERM)  # Gracefully terminate the process
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="server.py",
@@ -86,19 +96,32 @@ if __name__ == "__main__":
     parser.add_argument(
         "-k", "--keygen", action="store_true", help="make the server generate a new key"
     )
-    args = parser.parse_args()
+    my_args = parser.parse_args()
 
-    if args.keygen:
+    if my_args.keygen:
         generate_key()
         print("generated key")
 
-    thread_list: list[threading.Thread] = []
-
     count = 5
-    if args.count and args.count.isdecimal():
-        count = int(args.count)
+    if my_args.count and my_args.count.isdecimal():
+        count = int(my_args.count)
 
-    with Pool(count) as pool:
-        servers = pool.starmap(
-            start_server, [(8001 + i, args.verbose) for i in range(count)]
-        )
+    with multiprocessing.Pool(count) as pool:
+        server_pids = []
+
+        # servers = pool.starmap(
+        #     start_server, [(8001 + i, my_args.verbose) for i in range(count)]
+        # )
+
+        for port in [8001 + i for i in range(count)]:
+            result = pool.apply_async(
+                start_server,
+                args=(
+                    port,
+                    my_args.verbose,
+                ),
+            )
+
+        servers = multiprocessing.active_children()
+        server_pids = [server.pid for server in servers]
+        stop_servers_after_delay(server_pids, 60)
