@@ -234,14 +234,14 @@ class MultiServerAttacker:
 
         # step 3
         self.update_intervals(self.s_list[-1])
-        # self.last_print = self.cyber_print(
-        #     +str(
-        #         long_to_bytes(
-        #             (self.M.tolist()[0].start * pow(self.s0, -1, self.N)) % self.N
-        #         )
-        #     ),
-        #     self.last_print,
-        # )
+        self.last_print = self.cyber_print(
+            str(
+                long_to_bytes(
+                    (self.M.tolist()[0].start * pow(self.s0, -1, self.N)) % self.N
+                )
+            ),
+            self.last_print,
+        )
 
         if self.iteration <= 5 or self.iteration % 50 == 0:
             ic(self.iteration)
@@ -297,7 +297,7 @@ if __name__ == "__main__":
     HOSTS = ["localhost"] * 5
     PORTS = [8001, 8002, 8003, 8004, 8005]
     n, e = get_public()
-    attacker = MultiServerAttacker(n, e, get_cipher(), HOSTS, PORTS, 5, True)
+    attacker = MultiServerAttacker(n, e, get_cipher(), HOSTS, PORTS)
     res_range, s0 = attacker.attack()
     res = res_range.start
     # ic(res)
