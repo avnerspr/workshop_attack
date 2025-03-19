@@ -5,13 +5,8 @@ from oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
-<<<<<<< HEAD
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import chain, count, islice, cycle, zip_longest
-=======
-from concurrent.futures import ThreadPoolExecutor
-from itertools import chain, count, islice, cycle
->>>>>>> 762074cb7facf1ed433bc32a3067ffe90f57e0cd
 from typing import Iterator
 import sys
 import os
