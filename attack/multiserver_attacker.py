@@ -297,11 +297,7 @@ if __name__ == "__main__":
     HOSTS = ["localhost"] * 5
     PORTS = [8001, 8002, 8003, 8004, 8005]
     n, e = get_public()
-<<<<<<< HEAD
-    attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5, random_blinding=True)
-=======
     attacker = MultiServerAttacker(n, e, get_cipher(), HOSTS, PORTS, 5, True)
->>>>>>> 762074cb7facf1ed433bc32a3067ffe90f57e0cd
     res_range, s0 = attacker.attack()
     res = res_range.start
     # ic(res)
