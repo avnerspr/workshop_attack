@@ -83,7 +83,8 @@ class ParllelAttacker:
             vec[i] = self.N
 
         M = matrix(ZZ, [v0] + middle + [vf])
-        reduced_basis = M.LLL()
+        reduced_basis = list(M.LLL())
+        reduced_basis.sort(key=vec_norm)
 
         ic(reduced_basis)
         R = reduced_basis[1]
