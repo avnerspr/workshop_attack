@@ -1,13 +1,17 @@
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
-from math import ceil, floor
 from oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
+<<<<<<< HEAD
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import chain, count, islice, cycle, zip_longest
+=======
+from concurrent.futures import ThreadPoolExecutor
+from itertools import chain, count, islice, cycle
+>>>>>>> 762074cb7facf1ed433bc32a3067ffe90f57e0cd
 from typing import Iterator
 import sys
 import os
@@ -28,34 +32,10 @@ def batched(iterable, n):
         yield batch
 
 
-# async def async_s_generator_ab(start=1) -> int:
-#     """Generates `s` values dynamically without predefining a range."""
-#     s = start
-#     while True:
-#         yield s  # Yield the next value
-#         s += 1   # Increment for the next iteration
-
-# async def async_s_generator_c(interval: range, prev_s: int):
-#     """Generates `s` values dynamically without predefining a range."""
-#     s = start
-#     while True:
-#         yield s  # Yield the next value
-#         s += 1   # Increment for the next iteration
-
-
-# class QueryThread(Thread):
-
-#     def __init__(self, num: int, conn_index: int, result: list[bool]) -> None:
-#         super().__init__()
-#         self.num = num
-#         self.conn_index = conn_index
-#         self.result = result
-
-#     def run(self) -> None:
-#         self.result.append(oracle(self.num, self.conn_index))
-
-
-class Attacker:
+class MultiServerAttacker:
+    """
+    This class is used to attack the RSA encryption scheme using the Bleichenbacher attack.
+    """
 
     def __init__(
         self,
@@ -64,20 +44,32 @@ class Attacker:
         ct: int,
         hosts: list[str] | str,
         ports: list[int] | int,
-        thread_count: int = 1,
         random_blinding: bool = False,
         iteration: int = 1,
     ) -> None:
+        """_summary_
+
+        Args:
+            N (int): modulus of the public key
+            E (int): public exponent of the public key
+            ct (int): value of the ciphertext
+            hosts (list[str] | str): list of IP addresses of the servers, can be a single IP address
+            ports (list[int] | int): list of ports of the servers, can be a single port
+            random_blinding (bool, optional): if to start searching value for blinding at random value or at 1. Defaults to False.
+            iteration (int, optional): the starting iteration value. Defaults to 1.
+        """
         self.N = N
         self.E = E
         self.ct = ct
         self.C = ct
-        if thread_count == 1:
-            if isinstance(hosts, str):
-                self.hosts = [hosts]
-            if isinstance(ports, int):
-                self.ports = [ports]
-        self.conns = [init_oracle(host, port) for host, port in zip(hosts, ports)]
+        if isinstance(hosts, str):
+            self.hosts = [hosts]
+        if isinstance(ports, int):
+            self.ports = [ports]
+        self.thread_count = len(ports)
+        self.conns = [
+            init_oracle(host, port) for host, port in zip(hosts, ports, strict=True)
+        ]
         self.K = len(long_to_bytes(N))
         self.B = pow(
             2, 8 * (self.K - 2)
@@ -98,12 +90,16 @@ class Attacker:
         """
         return oracle(num, next(self.conn_cycler))
 
-    # & maybe for them to do
     def s_oracle(self, s: int) -> tuple[bool, int]:
+        """
+        A more comftarble version of the oracle function
+        """
         return self.oracle(self.C * pow(s, self.E, self.N) % self.N), s
 
-    # & maybe for them to do
     def blinding(self) -> tuple[int, int]:
+        """
+        This function is used to find a s_i that conforms to the oracle.
+        """
         start = randint(1, self.N - 1) if self.random_blinding else 1
         s0 = self.find_next_conforming(start)
         self.s0 = s0
@@ -112,10 +108,19 @@ class Attacker:
         return self.C, s0
 
     def find_next_conforming(self, start: int, chunk_size: int = 1000) -> int:
+        """
+        This function is used to search for the next s_i.
+        """
         return self.search_iterator(count(start), chunk_size)
 
     def search_iterator(self, iterator: Iterator, chunk_size: int = 1000) -> int:
-        if self.iteration <= 10:
+        """
+        This function is used to search for the next s_i.
+        It searches in the input iterator for a value that conforms to the oracle.
+        """
+        if (
+            self.iteration <= 10
+        ):  # if the iteration is less than 10, use parallel search
             with ThreadPoolExecutor(len(self.conns)) as executor:
                 for batch in batched(iterator, chunk_size):
                     results = executor.map(self.s_oracle, batch)
@@ -123,12 +128,12 @@ class Attacker:
                         if result:
                             executor.shutdown(cancel_futures=True)
                             return query
-        else:
+        else:  # for the rest of the iterations, parallel search is overkill and the thread creation waste time
             for query in iterator:
                 if self.s_oracle(query)[0]:
                     return query
 
-        raise ValueError("Iterator search failed")
+        raise ValueError("Iterator search failed")  # should never reach here
 
     def search_start(self, chunk_size=1000) -> int:
         """
@@ -161,6 +166,7 @@ class Attacker:
         self.s_list.append(s_i)
         return s_i
 
+    # step 2
     def search(self) -> int:
         """
         This function is used to search for the next s_i.
@@ -177,9 +183,11 @@ class Attacker:
             # step 2.c
             return self.search_single_interval(list(self.M)[0])
 
+    # step 3
     def update_intervals(self, s_i: int) -> DisjointSegments:
         """
-        This function is used to update the intervals in M after finding the next s_i.
+        This function is used to update the intervals in M  after finding the next s_i.
+        M is the data stracture that represent the possiable values for the plaintext.
         """
         s_i = s_i % self.N
         M_res = DisjointSegments()
@@ -289,7 +297,11 @@ if __name__ == "__main__":
     HOSTS = ["localhost"] * 5
     PORTS = [8001, 8002, 8003, 8004, 8005]
     n, e = get_public()
+<<<<<<< HEAD
     attacker = Attacker(n, e, get_cipher(), HOSTS, PORTS, 5, random_blinding=True)
+=======
+    attacker = MultiServerAttacker(n, e, get_cipher(), HOSTS, PORTS, 5, True)
+>>>>>>> 762074cb7facf1ed433bc32a3067ffe90f57e0cd
     res_range, s0 = attacker.attack()
     res = res_range.start
     # ic(res)

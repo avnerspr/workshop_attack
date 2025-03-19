@@ -163,13 +163,12 @@ class Attack:
         return self.oracle(self.C * pow(s, self.E, self.N) % self.N)
 
     def blinding(self) -> Tuple[int, int]:
-        for i in range(1, self.N):
-            s0 = randint(1, self.N - 1) if self.random_blinding else i
-            self.C = self.ct * pow(s0, self.E, self.N) % self.N
-            if self.oracle(self.C):
-                self.s0 = s0
-                self.s_list.append(s0)
-                return self.C, s0
+        start = randint(1, self.N - 1) if self.random_blinding else 1
+        s0 = self.find_next_conforming(start)
+        self.s0 = s0
+        self.s_list.append(s0)
+        self.C = self.ct * pow(s0, self.E, self.N) % self.N
+        return self.C, s0
 
     def find_next_conforming(self, start: int) -> int:
         ctr = 0
@@ -269,16 +268,13 @@ class Attack:
             self.iteration += 1
 
 
-# class ParellelAttacker:
-
-
 def main():
     global N, E, K, B
     global conn
     conn = init_oracle(HOST, PORT)
     C = get_cipher()
     N, E = get_public()
-    K = len(long_to_bytes(N))  # TODO better than this
+    K = len(long_to_bytes(N))
     B = pow(
         2, 8 * (K - 2)
     )  # the value of the lsb in the second most significant byte of N
@@ -302,5 +298,5 @@ def main():
 if __name__ == "__main__":
     # main()
     n, e = get_public()
-    attacker = Attack(n, e, get_cipher(), HOST, PORT)
+    attacker = Attack(n, e, get_cipher(), HOST, PORT, random_blinding=True)
     attacker.attack()
