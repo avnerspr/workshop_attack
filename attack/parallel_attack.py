@@ -11,6 +11,7 @@ from socket import SHUT_RDWR
 from typing import Iterator, Any
 from sage.all import matrix, ZZ
 import argparse
+import json
 
 
 LLL = LLLWrapper(
@@ -64,6 +65,9 @@ def attack_arguments_parser() -> argparse.Namespace:
 
 
 class ParallelAttacker:
+    """
+    This class manages and executes the parallel attack on multiple servers using multiple attackers.
+    """
 
     def __init__(
         self,
@@ -74,6 +78,17 @@ class ParallelAttacker:
         hosts: list[str],
         ports: list[int],
     ) -> None:
+        """
+        Initializes the ParallelAttacker with necessary parameters.
+
+        Args:
+            N (int): The RSA modulus.
+            E (int): The RSA public exponent.
+            ct (int): The encrypted ciphertext.
+            attacker_amount (int): The number of attackers to use.
+            hosts (list[str]): List of hosts (IP addresses or domain names).
+            ports (list[int]): List of ports for the servers.
+        """
         self.N = N
         self.E = E
         self.ct = ct
@@ -81,7 +96,17 @@ class ParallelAttacker:
         self.ports = ports
         self.attacker_count = attacker_amount
 
-    def _split_into_k_lists(self, K: int, input_lists: list[list[Any]]):
+    def _split_into_k_lists(self, K: int, input_lists: list[list]) -> list[tuple]:
+        """
+        Splits input lists into `K` chunks, where each chunk contains `K` elements.
+
+        Args:
+            K (int): The number of chunks to divide each list into.
+            input_lists (list[list]): A list of lists to be split.
+
+        Returns:
+            list[tuple]: A list of tuples, each containing K elements from the input lists.
+        """
         return_list = []
         for lst in input_lists:
             return_list.append([lst[i : i + K] for i in range(0, len(lst), K)])
@@ -90,6 +115,16 @@ class ParallelAttacker:
     def attacker_warper(
         self, hosts: list[str], ports: list[int]
     ) -> tuple[range, int, int]:
+        """
+        Wrapper function for executing the Bleichenbacher attack on a server with the provided hosts and ports.
+
+        Args:
+            hosts (list[str]): List of host IPs for the attack.
+            ports (list[int]): List of ports to use for the attack.
+
+        Returns:
+            tuple[range, int, int]: The result of the attack, containing a range and two integers (s0 and si).
+        """
         attacker: MultiServerAttacker = MultiServerAttacker(
             self.N, self.E, self.ct, hosts, ports, random_blinding=True
         )
@@ -99,7 +134,10 @@ class ParallelAttacker:
 
     def attack(self) -> int:
         """
-        Attack the server using multiple attackers
+        Starts the parallelized attack using multiple attackers in separate processes.
+
+        Returns:
+            int: The decrypted plaintext message.
         """
         with Pool(self.attacker_count) as pool:
             results = pool.starmap(
@@ -122,7 +160,15 @@ class ParallelAttacker:
 
     def conclusion(self, ranges: list[range], S0: list[int], Si: list[int]) -> int:
         """
-        Conclusion of the attack, using the LLL algorithm to find the plaintext from the information gathered
+        Concludes the attack using the LLL algorithm to compute the plaintext message from the attacker's results.
+
+        Args:
+            ranges (list[range]): List of ranges obtained from the attack.
+            S0 (list[int]): List of s0 values from each attacker's results.
+            Si (list[int]): List of si values from each attacker's results.
+
+        Returns:
+            int: The decrypted plaintext message.
         """
         m: int = 0
 
@@ -147,12 +193,24 @@ class ParallelAttacker:
 
 def vec_norm(vec: list[int]) -> int:
     """
-    Return the norm of a vector
+    Computes the norm of a vector (sum of squares of its elements).
+
+    Args:
+        vec (list[int]): The vector to compute the norm for.
+
+    Returns:
+        int: The norm of the vector.
     """
     return sum(x * x for x in vec)
 
 
 def main():
+    """
+    The main entry point of the program. Loads attack parameters, parses command-line arguments,
+    and starts the parallelized Bleichenbacher attack.
+    """
+    with open("attack/servers_addr.json", "r") as file:
+        params = json.load(file)
     my_args = attack_arguments_parser()
 
     num_of_servers: int = 15
@@ -173,8 +231,9 @@ def main():
 
     HOSTS = [host] * num_of_servers
     PORTS = [base_port + i for i in range(num_of_servers)]
-    n, e = get_public()
-    parallel = ParallelAttacker(n, e, get_cipher(), num_of_attackers, HOSTS, PORTS)
+    parallel = ParallelAttacker(
+        params["N"], params["E"], params["C"], num_of_attackers, HOSTS, PORTS
+    )
     parallel.attack()
 
 
