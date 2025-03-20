@@ -1,11 +1,43 @@
 from rsa import check_padding
-from attack.bleichenbacher import search_mulitiple_intervals, search_single_interval, ceil_div, search_start
+from attack.bleichenbacher import search_mulitiple_intervals, search_single_interval, ceil_div, search_start, blinding, N, E, K, B
 from attack.disjoint_segments import DisjointSegments
+from Crypto.PublicKey import RSA
+from random import randint
+from typing import Any, Tuple
+from Crypto.Util.number import long_to_bytes
 
 
+BITS_LENGTH = 1024
+E = 65537
+CONST_MESSAGE_1 = randint(0,1<<BITS_LENGTH-1)
+CONST_MESSAGE_2 = randint(0,1<<BITS_LENGTH-1)
+CONST_MESSAGE_3 = randint(0,1<<BITS_LENGTH-1)
+CONST_MESSAGE_4 = randint(0,1<<BITS_LENGTH-1)
+CONST_MESSAGE_5 = randint(0,1<<BITS_LENGTH-1)
+CONST_MESSAGE_6 = randint(0,1<<BITS_LENGTH-1)
+
+PRIVATE_KEY_1 = RSA.generate(BITS_LENGTH)
+PRIVATE_KEY_2 = RSA.generate(BITS_LENGTH)
+PRIVATE_KEY_3 = RSA.generate(BITS_LENGTH)
+PRIVATE_KEY_4 = RSA.generate(BITS_LENGTH)
+PRIVATE_KEY_5 = RSA.generate(BITS_LENGTH)
+PRIVATE_KEY_6 = RSA.generate(BITS_LENGTH)
+
+print(PRIVATE_KEY_3.e)
+exit()
 
 def string_to_DisjointSegments(M:str):
     return DisjointSegments.deserialize(M)
+
+def get_NEC(key:RSA.RsaKey, m):
+    return key.n, key.e, pow(m,key.d,key.n)
+
+
+def blinding(N:int,E:int,C: int) -> Tuple[int, int]:
+    for s0 in range(1, N):
+        C0 = C * pow(s0, E, N) % N
+        if check_padding(C0):
+            return C0, s0
 
 def search_single_interval(N:int,E:int,C:int, interval: range, s_list: list[int], B:int):
     a, b = interval.start, interval.stop - 1
@@ -34,7 +66,6 @@ def update_intervals(N:int, prev_M: DisjointSegments, prev_s: int, B:int) -> Dis
 
     assert len(M_res) >= 1
     return M_res
-
 def outer_test_blinding(N:int,E:int,C:int): # Challenge #1
 
     def test_blinding(s:str):
@@ -48,8 +79,10 @@ def outer_test_blinding(N:int,E:int,C:int): # Challenge #1
             return False, 'Attempt failed. Incorrect blinding value'
     
     return test_blinding
-
-
+def generate_params_blinding(key:RSA.RsaKey) -> dict[str,Any]:
+    m = CONST_MESSAGE_1
+    N,E,C = get_NEC(key,m)
+    return {"N":str(N), "E":str(E), "C":str(C)}
 def outer_test_level_2a(N:int,E:int,C0:int): # Challenge #2
 
     def test_level_2a(s1):
@@ -64,9 +97,11 @@ def outer_test_level_2a(N:int,E:int,C0:int): # Challenge #2
             return False, 'Attempt failed. Incorrect value of s1'
         
     return test_level_2a
-
-
-
+def generate_params_level_2a(key:RSA.RsaKey) -> dict[str, str]:
+    m = CONST_MESSAGE_2
+    N,E,C = get_NEC(key,m)
+    C0, s0 = blinding(N,E,C)
+    return {"N":str(N), "E":str(E), "C0":str(C0)}
 def outer_test_level_2b(N:int,E:int,C:int,M:DisjointSegments, prev_s:int): # Challenge #3
     # |M| > 1
 
@@ -82,7 +117,30 @@ def outer_test_level_2b(N:int,E:int,C:int,M:DisjointSegments, prev_s:int): # Cha
 
     
     return test_level_2b
+def generate_params_level_2b(key:RSA.RsaKey) -> dict[str,str]:
+    m = CONST_MESSAGE_3
+    N,E,C = get_NEC(key, m)
+    K = len(long_to_bytes(N))  # TODO better than this
+    B = pow(
+        2, 8 * (K - 2)
+    )  # the value of the lsb in the second most significant byte of N
 
+    C0, s0 = blinding(N,E,C)
+    # s_list = [s0]
+    # M: DisjointSegments = DisjointSegments([range(2 * B, 3 * B)])
+    # MAX_ITER = 1_000_000
+    # for iteration in range(1, MAX_ITER + 1):
+    #     # steps 2-4
+    #     res, M = algo_iteration(C0, M, s_list, iteration)
+    #     if res:
+    #         assert isinstance(M, int)
+    #         result = M
+    #         ans_num = result * pow(s0, -1, N) % N
+    #         ans = long_to_bytes(ans_num, KEY_SIZE // 8)
+    #         print(f"{ans = }")
+    #         break
+
+    #update_intervals(N, prev_M, prev_s, B)
 
 def outer_test_level_2c(N:int,E:int,C:int,M:DisjointSegments,prev_s:int, B): # Challenge #4
     # |M| == 1

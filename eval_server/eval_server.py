@@ -5,7 +5,6 @@ import socketserver
 from typing import Callable, Dict, Any, Tuple
 from dataclasses import dataclass
 
-
 @dataclass
 class TestCase:
     """Represents a test case with a validation function and associated metadata."""
@@ -96,3 +95,13 @@ class EvalRequestHandler(socketserver.BaseRequestHandler):
         except (json.JSONDecodeError, KeyError):
             response = {"error": "Invalid request format"}
         self.request.sendall(json.dumps(response).encode("utf-8"))
+
+
+
+def main():
+    eval_server = EvalServer()
+    eval_server.add_test()
+
+
+if __name__ == "__main__":
+    main()
