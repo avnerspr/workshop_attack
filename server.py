@@ -15,6 +15,26 @@ import signal
 KEY_SIZE = 1024
 
 
+def parse_server_arguments():
+    parser = argparse.ArgumentParser(
+        prog="server.py",
+        description="Starts a multithreaded server that is vulnerable to the Bleichenbacher attack",
+        epilog="Try running and see if you can decrypt the message",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="displays when a message is PKCS conforming",
+    )
+    parser.add_argument("-c", "--count", help="number of threads to run, defaults to 5")
+    parser.add_argument(
+        "-k", "--keygen", action="store_true", help="make the server generate a new key"
+    )
+    my_args = parser.parse_args()
+    return my_args
+
+
 def generate_key():
     p = getPrime(KEY_SIZE // 2)
     q = getPrime(KEY_SIZE // 2)
@@ -81,22 +101,7 @@ def stop_servers_after_delay(server_pids: list[int], delay: int):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="server.py",
-        description="Starts a multithreaded server that is vulnerable to the Bleichenbacher attack",
-        epilog="Try running and see if you can decrypt the message",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="displays when a message is PKCS conforming",
-    )
-    parser.add_argument("-c", "--count", help="number of threads to run, defaults to 5")
-    parser.add_argument(
-        "-k", "--keygen", action="store_true", help="make the server generate a new key"
-    )
-    my_args = parser.parse_args()
+    my_args = parse_server_arguments()
 
     if my_args.keygen:
         generate_key()
