@@ -15,6 +15,7 @@ PORT = 8001
 def ceil_div(x: int, y: int) -> int:
     return (x + y - 1) // y
 
+
 def get_public() -> Tuple[int, int]:
     with open("public_key.rsa", "rb") as key_file:
         pub_key = RSA.import_key(key_file.read())
@@ -84,7 +85,7 @@ def update_intervals(M: DisjointSegments, s_i: int, iteration: int) -> DisjointS
         for r in r_range:
             pos_sol_range = range(
                 max(a, ceil_div(2 * B + r * N, s_i)),
-                (min(b, (((3 * B - 1 + r * N) // s_i) + 1))),
+                (min(b, (((3 * B - 1 + r * N) // s_i))) + 1),
             )
 
             M_res.add(pos_sol_range)
@@ -113,7 +114,7 @@ def algo_iteration(C: int, M: DisjointSegments, s_list: List[int], iteration: in
 
     # step 3
     M = update_intervals(M, s_list[-1], iteration)
-    if iteration <= 5 or iteration % 50  == 0:
+    if iteration <= 5 or iteration % 50 == 0:
         ic(iteration)
         ic(M.size())
 
@@ -129,7 +130,16 @@ def algo_iteration(C: int, M: DisjointSegments, s_list: List[int], iteration: in
 class Attack:
     pass
 
-    def __init__(self, N: int, E: int, ct: int, host: str, port: int, random_blinding: bool=False, iteration: int = 1) -> None:
+    def __init__(
+        self,
+        N: int,
+        E: int,
+        ct: int,
+        host: str,
+        port: int,
+        random_blinding: bool = False,
+        iteration: int = 1,
+    ) -> None:
         self.N = N
         self.E = E
         self.ct = ct
@@ -139,28 +149,27 @@ class Attack:
         self.conn = init_oracle(host, port)
         self.K = len(long_to_bytes(N))
         self.B = pow(
-        2, 8 * (self.K - 2)
+            2, 8 * (self.K - 2)
         )  # the value of the lsb in the second most significant byte of N
         self.random_blinding = random_blinding
         self.s_list: list[int] = []
         self.M: DisjointSegments = DisjointSegments([range(2 * self.B, 3 * self.B)])
         self.iteration = iteration
-        
+
     def oracle(self, num: int) -> bool:
         return oracle(num, self.conn)
-    
+
     def s_oracle(self, s: int) -> bool:
         return self.oracle(self.C * pow(s, self.E, self.N) % self.N)
-    
+
     def blinding(self) -> Tuple[int, int]:
-        for i in range(1, self.N):
-            s0 = randint(1, self.N - 1) if self.random_blinding else i
-            self.C = self.ct * pow(s0, self.E, self.N) % self.N
-            if self.oracle(self.C):
-                self.s0 = s0
-                self.s_list.append(s0)
-                return self.C, s0
-    
+        start = randint(1, self.N - 1) if self.random_blinding else 1
+        s0 = self.find_next_conforming(start)
+        self.s0 = s0
+        self.s_list.append(s0)
+        self.C = self.ct * pow(s0, self.E, self.N) % self.N
+        return self.C, s0
+
     def find_next_conforming(self, start: int) -> int:
         ctr = 0
         for s in range(start, self.N):
@@ -169,22 +178,22 @@ class Attack:
                 return s
             if ctr % 10_000 == 0:
                 ic(ctr)
-    
+
     def search_start(self) -> int:
         s1 = self.find_next_conforming(self.N // (3 * self.B) + 1)
         self.s_list.append(s1)
         return s1
-
 
     def search_mulitiple_intervals(self) -> int:
         s_i = self.find_next_conforming(self.s_list[-1] + 1)
         self.s_list.append(s_i)
         return s_i
 
-
     def search_single_interval(self, interval: range):
         a, b = interval.start, interval.stop - 1
-        for r_i in range(2 * ceil_div(b * self.s_list[-1] - 2 * self.B, self.N), self.N):
+        for r_i in range(
+            2 * ceil_div(b * self.s_list[-1] - 2 * self.B, self.N), self.N
+        ):
             s_i = ceil_div(2 * self.B + r_i * self.N, b)
             if s_i * a < (3 * self.B + r_i * self.N):
                 if self.s_oracle(s_i):
@@ -192,7 +201,7 @@ class Attack:
                     return s_i
 
         raise ValueError("the range of r search need to be bigger")
-    
+
     def search(self):
         if self.iteration == 1:
             # step 2.a
@@ -210,7 +219,10 @@ class Attack:
         M_res = DisjointSegments()
         for interval in self.M:
             a, b = interval.start, interval.stop - 1
-            r_range = range(((a * s_i - 3 * self.B + 1) // self.N), ((b * s_i - 2 * self.B) // self.N) + 1)
+            r_range = range(
+                ((a * s_i - 3 * self.B + 1) // self.N),
+                ((b * s_i - 2 * self.B) // self.N) + 1,
+            )
             for r in r_range:
                 pos_sol_range = range(
                     max(a, ceil_div(2 * self.B + r * self.N, s_i)),
@@ -229,7 +241,7 @@ class Attack:
 
         # step 3
         self.update_intervals(self.s_list[-1])
-        if self.iteration <= 5 or self.iteration % 50  == 0:
+        if self.iteration <= 5 or self.iteration % 50 == 0:
             ic(self.iteration)
             ic(self.M.size())
 
@@ -237,29 +249,24 @@ class Attack:
         if len(self.M) == 1:
             M_lst: list[range] = list(iter(self.M))
             if M_lst[0].stop - M_lst[0].start <= 1:
-                return True, M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N  # found solution
+                return (
+                    True,
+                    M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N,
+                )  # found solution
 
         return False, self.M
-    
-    
+
     def attack(self) -> bytes:
         self.blinding()
         while True:
             res, ans = self.algo_iteration()
             if res:
                 assert isinstance(ans, int)
-                result = ans
-                ans_num = result * pow(self.s0, -1, self.N) % self.N
-                ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-                print(f"{ans = }")
-                return ans
+                result = long_to_bytes(ans, KEY_SIZE // 8)
+                ic(result)
+                return result
             self.iteration += 1
-        
 
-# class ParellelAttacker:
-    
-    
-    
 
 def main():
     global N, E, K, B
@@ -267,7 +274,7 @@ def main():
     conn = init_oracle(HOST, PORT)
     C = get_cipher()
     N, E = get_public()
-    K = len(long_to_bytes(N))  # TODO better than this
+    K = len(long_to_bytes(N))
     B = pow(
         2, 8 * (K - 2)
     )  # the value of the lsb in the second most significant byte of N
@@ -283,15 +290,13 @@ def main():
         res, M = algo_iteration(C0, M, s_list, iteration)
         if res:
             assert isinstance(M, int)
-            result = M
-            ans_num = result * pow(s0, -1, N) % N
-            ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-            print(f"{ans = }")
+            result = long_to_bytes(M, KEY_SIZE // 8)
+            ic(result)
             break
 
 
 if __name__ == "__main__":
     # main()
     n, e = get_public()
-    attacker = Attack(n, e, get_cipher(), HOST, PORT)
+    attacker = Attack(n, e, get_cipher(), HOST, PORT, random_blinding=True)
     attacker.attack()

@@ -3,27 +3,29 @@
 #include <cmath>
 #include <numeric>
 #include <cassert>
-
+#include <gmpxx.h>
+using BigInt = mpz_class;
+using BigRat = mpq_class;
 /**
  * Performs Gram-Schmidt orthogonalization on a given basis.
  *
  * @param basis A vector of vectors representing the input basis.
  * @return A vector of vectors representing the orthogonalized basis.
  */
-std::vector<std::vector<double>> gramSchmidt(const std::vector<std::vector<double>> &basis)
+std::vector<std::vector<BigInt>> gramSchmidt(const std::vector<std::vector<BigInt>> &basis)
 {
     size_t n = basis.size(); // Number of vectors in the basis
     size_t m = basis[0].size(); // Dimension of each vector
-    std::vector<std::vector<double>> orthogonalBasis(n, std::vector<double>(m, 0.0));
+    std::vector<std::vector<BigInt>> orthogonalBasis(n, std::vector<BigInt>(m, 0.0));
 
     for (size_t i = 0; i < n; ++i) {
         // Start with the current vector
         orthogonalBasis[i] = basis[i];
         for (size_t j = 0; j < i; ++j) {
             // Compute the projection of basis[i] onto orthogonalBasis[j]
-            double dotProduct = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[j].begin(), 0.0);
-            double normSquared = std::inner_product(orthogonalBasis[j].begin(), orthogonalBasis[j].end(), orthogonalBasis[j].begin(), 0.0);
-            double projectionFactor = dotProduct / normSquared;
+            BigInt dotProduct = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[j].begin(), 0.0);
+            BigInt normSquared = std::inner_product(orthogonalBasis[j].begin(), orthogonalBasis[j].end(), orthogonalBasis[j].begin(), 0.0);
+            BigInt projectionFactor = dotProduct / normSquared;
             for (size_t k = 0; k < m; ++k) {
                 orthogonalBasis[i][k] -= projectionFactor * orthogonalBasis[j][k];
             }
@@ -38,7 +40,7 @@ std::vector<std::vector<double>> gramSchmidt(const std::vector<std::vector<doubl
  * @param basis A vector of vectors representing the lattice basis to be reduced.
  * @param delta A parameter (0.5 < delta <= 1.0) controlling the strength of the reduction.
  */
-void lllAlgorithm(std::vector<std::vector<double>> &basis, double delta = 0.75)
+void lllAlgorithm(std::vector<std::vector<BigInt>> &basis, BigInt delta = 0.75)
 {
     assert(delta > 0.5 && delta <= 1.0); // Valid range for delta
 
@@ -54,11 +56,12 @@ void lllAlgorithm(std::vector<std::vector<double>> &basis, double delta = 0.75)
             // Step 1: Size reduction
             for (size_t j = i - 1; j < i; --j) {
                 // mu = <b[i], b*[j]> / <b*[j], b*[j]>
-                double mu = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[j].begin(), 0.0) / std::inner_product(orthogonalBasis[j].begin(), orthogonalBasis[j].end(), orthogonalBasis[j].begin(), 0.0);
+                BigRat mu = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[j].begin(), 0.0) / std::inner_product(orthogonalBasis[j].begin(), orthogonalBasis[j].end(), orthogonalBasis[j].begin(), 0.0);
 
-                if (std::abs(mu) > 0.5) {
+                if (abs(mu.get_num()) > mu.get_den() / 2) {
                     // Round mu to the nearest integer
-                    int roundMu = std::round(mu);
+                    //// int roundMu = std::round(mu);
+                    BigInt roundMu = (mu.get_num() + mu.get_den() / 2) / mu.get_den();
                     for (size_t k = 0; k < m; ++k) {
                         basis[i][k] -= roundMu * basis[j][k];
                     }
@@ -67,10 +70,10 @@ void lllAlgorithm(std::vector<std::vector<double>> &basis, double delta = 0.75)
 
             // Step 2: Check the Lovász condition
 
-            double mu_cond = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[i - 1].begin(), 0.0) / std::inner_product(orthogonalBasis[i - 1].begin(), orthogonalBasis[i - 1].end(), orthogonalBasis[i - 1].begin(), 0.0);
-            double mu_cond_squared = mu_cond * mu_cond;
-            double lhs = std::inner_product(orthogonalBasis[i].begin(), orthogonalBasis[i].end(), orthogonalBasis[i].begin(), 0.0);
-            double rhs = (delta - mu_cond_squared) * std::inner_product(orthogonalBasis[i - 1].begin(), orthogonalBasis[i - 1].end(), orthogonalBasis[i - 1].begin(), 0.0);
+            BigInt mu_cond = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[i - 1].begin(), 0.0) / std::inner_product(orthogonalBasis[i - 1].begin(), orthogonalBasis[i - 1].end(), orthogonalBasis[i - 1].begin(), 0.0);
+            BigInt mu_cond_squared = mu_cond * mu_cond;
+            BigInt lhs = std::inner_product(orthogonalBasis[i].begin(), orthogonalBasis[i].end(), orthogonalBasis[i].begin(), 0.0);
+            BigInt rhs = (delta - mu_cond_squared) * std::inner_product(orthogonalBasis[i - 1].begin(), orthogonalBasis[i - 1].end(), orthogonalBasis[i - 1].begin(), 0.0);
 
             if (lhs < rhs) {
                 // Swap basis vectors if the condition is violated
@@ -92,10 +95,10 @@ void lllAlgorithm(std::vector<std::vector<double>> &basis, double delta = 0.75)
  *
  * @param matrix A vector of vectors representing the matrix to be printed.
  */
-void printMatrix(const std::vector<std::vector<double>> &matrix)
+void printMatrix(const std::vector<std::vector<BigInt>> &matrix)
 {
     for (const auto &row : matrix) {
-        for (double value : row) {
+        for (BigInt value : row) {
             std::cout << value << " ";
         }
         std::cout << std::endl;
@@ -104,14 +107,14 @@ void printMatrix(const std::vector<std::vector<double>> &matrix)
 
 void gram_schmidt_tests()
 {
-    std::vector<std::vector<double>> test1 = { { 0, 3, 4 }, { 1, 0, 1 }, { 1, 1, 3 } };
+    std::vector<std::vector<BigInt>> test1 = { { 0, 3, 4 }, { 1, 0, 1 }, { 1, 1, 3 } };
     auto output = gramSchmidt(test1);
     printMatrix(output);
 }
 
 void test_lll(int d, int n)
 {
-    std::vector<std::vector<double>> lattice(d, std::vector<double>(n, 0.0));
+    std::vector<std::vector<BigInt>> lattice(d, std::vector<BigInt>(n, 0));
     for (int i = 0; i < d; i++) {
         for (int j = 0; j < n; j++) {
             lattice[i][j] = rand() % 1000;
@@ -128,17 +131,17 @@ void test_lll(int d, int n)
 
 /**
  * Performs lll in-place on the given `lattice`.
- * `lattice` is interpreted as a 2D-array of doubles,
+ * `lattice` is interpreted as a 2D-array of BigInts,
  * of dimensions `vector_dimension` x `num_of_vectors`
  *
  * So accessing the i-th coordinate of the j-th vector would be
  * `lattice[j * vector_dimension + i]`
  * */
-extern "C" void lll(double *lattice, int num_of_vectors, int vector_dimension)
+extern "C" void lll(BigInt *lattice, int num_of_vectors, int vector_dimension)
 {
-    std::vector<std::vector<double>> lattice_vec;
+    std::vector<std::vector<BigInt>> lattice_vec;
     for (int j = 0; j < num_of_vectors; j++) {
-        std::vector<double> vec(lattice + (vector_dimension * j), lattice + (vector_dimension * (j + 1)));
+        std::vector<BigInt> vec(lattice + (vector_dimension * j), lattice + (vector_dimension * (j + 1)));
         lattice_vec.push_back(vec);
     }
 
@@ -158,10 +161,10 @@ extern "C" void lll(double *lattice, int num_of_vectors, int vector_dimension)
  */
 int main()
 {
-    // test_lll(50, 50);
+    test_lll(50, 50);
 
     // Example basis: a set of vectors in a lattice
-    std::vector<std::vector<double>> basis = {
+    std::vector<std::vector<BigInt>> basis = {
         { 1, 2, 3, 4 },
         { 3, 1, 4, 1 },
         { 5, 9, 2, 6 },
@@ -177,7 +180,7 @@ int main()
     std::cout << "Reduced Basis:" << std::endl;
     printMatrix(basis);
 
-    double basis2[] = {
+    BigInt basis2[] = {
         1, 2, 3, 4,
         3, 1, 4, 1,
         5, 9, 2, 6,

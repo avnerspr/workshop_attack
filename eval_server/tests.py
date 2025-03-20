@@ -55,11 +55,13 @@ def blinding(N: int, E: int, C: int) -> Tuple[int, int]:
 def search_single_interval(
     N: int, E: int, C: int, interval: range, s_list: list[int], B: int
 ):
+
     a, b = interval.start, interval.stop - 1
     for r_i in range(2 * ceil_div(b * s_list[-1] - 2 * B, N), N):
         s_i = ceil_div(2 * B + r_i * N, b)
         if s_i * a < (3 * B + r_i * N):
             if check_padding(C * pow(s_i, E) % N):
+
                 s_list.append(s_i)
                 return r_i, s_i
 

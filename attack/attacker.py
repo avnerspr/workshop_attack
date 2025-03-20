@@ -6,6 +6,7 @@ from oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
+from socket import SHUT_RDWR
 
 
 def ceil_div(x: int, y: int) -> int:
@@ -13,7 +14,6 @@ def ceil_div(x: int, y: int) -> int:
 
 
 class Attacker:
-    pass
 
     def __init__(
         self,
@@ -52,14 +52,13 @@ class Attacker:
 
     # & maybe for them to do
     def blinding(self) -> tuple[int, int]:
-        s0 = randint(1, self.N - 1) if self.random_blinding else 1
-        for _ in range(1, self.N):
+        for i in range(1, self.N):
+            s0 = randint(1, self.N - 1) if self.random_blinding else i
             self.C = self.ct * pow(s0, self.E, self.N) % self.N
             if self.oracle(self.C):
                 self.s0 = s0
                 self.s_list.append(s0)
                 return self.C, s0
-            s0 = (s0 + 1) % self.N
 
     def find_next_conforming(self, start: int) -> int:
         ctr = 0
@@ -100,6 +99,9 @@ class Attacker:
         raise ValueError("the range of r search need to be bigger")
 
     def search(self):
+        """
+        This function is used to search for the next s_i.
+        """
         if self.iteration == 1:
             # step 2.a
             self.search_start()
@@ -113,6 +115,9 @@ class Attacker:
             self.search_single_interval(list(self.M)[0])
 
     def update_intervals(self, s_i: int) -> DisjointSegments:
+        """
+        This function is used to update the intervals in M after finding the next s_i.
+        """
         M_res = DisjointSegments()
         for interval in self.M:
             a, b = interval.start, interval.stop - 1
@@ -123,37 +128,42 @@ class Attacker:
             for r in r_range:
                 pos_sol_range = range(
                     max(a, ceil_div(2 * self.B + r * self.N, s_i)),
-                    (min(b, (((3 * self.B - 1 + r * self.N) // s_i) + 1))),
+                    (min(b, (((3 * self.B - 1 + r * self.N) // s_i))) + 1),
                 )
 
                 M_res.add(pos_sol_range)
-        ic(M_res)
-        assert len(M_res) >= 1
+
+        if not (len(M_res) >= 1):
+            ic(M_res)
+            raise AssertionError
         self.M = M_res
         return M_res
 
     def algo_iteration(self):
-
+        """
+        This function is used to run one iteration of the attack algorithm.
+        """
         try:
             # step 2
             self.search()
+
+            # step 3
+            self.update_intervals(self.s_list[-1])
+            if self.iteration <= 5 or self.iteration % 50 == 0:
+                ic(self.iteration)
+                ic(self.M.size())
+
+            # step 4
+            if len(self.M) == 1:
+                M_lst: list[range] = list(iter(self.M))
+                if M_lst[0].stop - M_lst[0].start <= 1:
+                    # answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
+                    return True, M_lst[0]  # found solution
+
+            return False, self.M
+
         except ServerClosed:
             return True, self.M.smallest_inclusive()  # ran out of time
-
-        # step 3
-        self.update_intervals(self.s_list[-1])
-        if self.iteration <= 5 or self.iteration % 50 == 0:
-            ic(self.iteration)
-            ic(self.M.size())
-
-        # step 4
-        if len(self.M) == 1:
-            M_lst: list[range] = list(iter(self.M))
-            if M_lst[0].stop - M_lst[0].start <= 1:
-                answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
-                return True, range(answer, answer + 1)  # found solution
-
-        return False, self.M
 
     def attack(self) -> tuple[range, int]:
         ic("started attack")
@@ -168,6 +178,7 @@ class Attacker:
                 # ans_num = result * pow(self.s0, -1, self.N) % self.N
                 # ans = long_to_bytes(ans_num, KEY_SIZE // 8)
                 # print(f"{ans = }")
+                self.conn.shutdown(SHUT_RDWR)
                 self.conn.close()
                 return ans, self.s0
             self.iteration += 1
