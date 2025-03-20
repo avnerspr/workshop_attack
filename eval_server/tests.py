@@ -122,14 +122,18 @@ def outer_test_compute_M(N:int,E:int,C:int,prev_M:DisjointSegments,prev_s:int,B:
     return test_compute_M
 
 
-def outer_test_level_final(m:int): # Challenge #6
+def outer_test_level_final(message:int): # Challenge #6
     
-    def test_level_final(m_candidate:str):
+    def test_level_final(m:str):
         try:
             m = int(m)
         except:
             return False, 'Attempt failed. Incorrect value format'
-
+        
+        if m == message:
+            return True, 'You successfully solved level 6. The flag for the next level is "secret_flag_p0voqE4iUv0Q8t35"'
+        else:
+            return False, 'Attempt failed. Incorrect value of M'
 
     return test_level_final 
 
