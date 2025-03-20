@@ -57,7 +57,7 @@ def get_params_mNEC(level_num):
     m = MESSAGES[index]
     N = N_VALUES[index]
     d = D_VALUES[index]
-    C = pow(m,d, N)
+    C = pow(m,E, N)
     return m, N, E, C
 
 
