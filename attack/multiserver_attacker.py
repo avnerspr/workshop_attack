@@ -280,5 +280,3 @@ if __name__ == "__main__":
     attacker = MultiServerAttacker(
         params["N"], params["E"], params["C"], params["hosts"], params["ports"]
     )
-    ans = attacker.attack()[0].start
-    print(f"answer = {ans}")
