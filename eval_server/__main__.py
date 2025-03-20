@@ -1,7 +1,8 @@
 from eval_server import tests
-from eval_server.eval_server import EvalServer
+from eval_server.eval_server import EvalServer, TestCase
 from attack.create_attack_config import get_cipher, get_public
 
+from typing import Callable, Dict, Any, Tuple
 from argparse import ArgumentParser, Namespace
 
 
@@ -14,13 +15,17 @@ def get_arguments() -> Namespace:
     return parser.parse_args()
 
 
+# def add_tests(server: EvalServer, tests: list[TestCase]):
+#     for i, test in enumerate(tests):
+#         server.add_test(tests)
+
 def main():
     args = get_arguments()
     server = EvalServer(args.host, int(args.port))
 
     N, E = get_public()
     C = get_cipher()
-    blinding_test = tests.outer_test_blinding(N, E, C)
+    blinding_test = tests.outer_test_blinding(tests.N_VALUES[0], tests.E, tests.MESSAGES[0])
     server.add_test("blinding", blinding_test, {})
     server.run()
 

@@ -31,8 +31,7 @@ class EvalServer(socketserver.TCPServer):
     def add_test(
         self,
         name: str,
-        tester: Callable[[str], Tuple[bool, str]],
-        metadata: Dict[str, Any],
+        test: TestCase
     ) -> None:
         """Registers a new test case with a given name, validation function, and metadata.
 
@@ -41,7 +40,7 @@ class EvalServer(socketserver.TCPServer):
             tester (Callable[[str], bool]): A function that evaluates the correctness of an answer.
             metadata (Dict[str, Any]): Additional data associated with the test.
         """
-        self.tests[name] = TestCase(tester, metadata)
+        self.tests[name] = test
 
     def save_results(self) -> None:
         """Saves the current evaluation results to a file."""

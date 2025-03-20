@@ -16,7 +16,6 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 BITS_LENGTH = 1024
 E = 65537
-B = 1 << (BITS_LENGTH - 16)
 
 MESSAGES = [
  77319936973372202217725276511797052350780493672174214652361474566481436230955858621081107670328511060511343668536635801544575018540889821003795139431832435663810014544708224110454983085985398547132552583805570626169402854830358970613823095819997383235855435856420284152872280769461172005611654586146640405676,
@@ -47,6 +46,51 @@ D_VALUES = [
 ]
 
 
+# def check_padding(self, ciphertext, sentinel, expected_pt_len=0):
+
+#     k = self._key.size_in_bytes()
+
+#     if len(ciphertext) != k:
+#         raise ValueError("Ciphertext with incorrect length (not %d bytes)" % k)
+
+#     ct_int = bytes_to_long(ciphertext)
+
+#     em = self._key._decrypt_to_bytes(ct_int)
+#     return em[0:2] == b"\x00\x02"
+
+
+
+# BITS_LENGTH = 1024
+# E = 65537
+# CONST_MESSAGE_1 = randint(0, 1 << BITS_LENGTH - 1)
+# CONST_MESSAGE_2 = randint(0, 1 << BITS_LENGTH - 1)
+# CONST_MESSAGE_3 = randint(0, 1 << BITS_LENGTH - 1)
+# CONST_MESSAGE_4 = randint(0, 1 << BITS_LENGTH - 1)
+# CONST_MESSAGE_5 = randint(0, 1 << BITS_LENGTH - 1)
+# CONST_MESSAGE_6 = randint(0, 1 << BITS_LENGTH - 1)
+
+# PRIVATE_KEY_1 = RSA.generate(BITS_LENGTH)
+# PRIVATE_KEY_2 = RSA.generate(BITS_LENGTH)
+# PRIVATE_KEY_3 = RSA.generate(BITS_LENGTH)
+# PRIVATE_KEY_4 = RSA.generate(BITS_LENGTH)
+# PRIVATE_KEY_5 = RSA.generate(BITS_LENGTH)
+# PRIVATE_KEY_6 = RSA.generate(BITS_LENGTH)
+
+# print(CONST_MESSAGE_1)
+# print("\n\n")
+# print(CONST_MESSAGE_2)
+# print("\n\n")
+# print(CONST_MESSAGE_3)
+# print("\n\n")
+# print(CONST_MESSAGE_4)
+# print("\n\n")
+# print(CONST_MESSAGE_5)
+# print("\n\n")
+# print(CONST_MESSAGE_6)
+# print("\n\n")
+
+
+
 def string_to_DisjointSegments(M: str):
     return DisjointSegments.deserialize(M)
 
@@ -59,6 +103,9 @@ def get_params_mNEC(level_num):
     d = D_VALUES[index]
     C = pow(m,E, N)
     return m, N, E, C
+
+def get_NEC(key: RSA.RsaKey, m):
+    return key.n, key.e, pow(m, key.d, key.n)
 
 
 def blinding(N: int, E: int, C: int) -> Tuple[int, int]:
@@ -123,8 +170,9 @@ def outer_test_blinding(N: int, E: int, C: int):  # Challenge #1
     return test_blinding
 
 
-def get_params_blinding() -> dict[str, Any]:
-    m, N, E, C = get_params_mNEC(level_num=1)
+def generate_params_blinding(key: RSA.RsaKey) -> dict[str, Any]:
+    m = MESSAGES[0]
+    N, E, C = get_NEC(key, m)
     return {"N": str(N), "E": str(E), "C": str(C)}
 
 
@@ -147,8 +195,9 @@ def outer_test_level_2a(N: int, E: int, C0: int):  # Challenge #2
     return test_level_2a
 
 
-def get_params_level_2a(key: RSA.RsaKey) -> dict[str, str]:
-    m, N, E, C = get_params_mNEC(level_num=2)
+def generate_params_level_2a(key: RSA.RsaKey) -> dict[str, str]:
+    m = MESSAGES[1]
+    N, E, C = get_NEC(key, m)
     C0, s0 = blinding(N, E, C)
     return {"N": str(N), "E": str(E), "C0": str(C0)}
 
@@ -174,9 +223,14 @@ def outer_test_level_2b(
     return test_level_2b
 
 
-def get_params_level_2b(key: RSA.RsaKey) -> dict[str, str]: #TODO implement
-    m, N, E, C = get_params_mNEC(level_num=3)
-    global B
+def generate_params_level_2b(key: RSA.RsaKey) -> dict[str, str]:
+    m = MESSAGES[2]
+    N, E, C = get_NEC(key, m)
+    K = len(long_to_bytes(N))  # TODO better than this
+    B = pow(
+        2, 8 * (K - 2)
+    )  # the value of the lsb in the second most significant byte of N
+
     C0, s0 = blinding(N, E, C)
     # s_list = [s0]
     # M: DisjointSegments = DisjointSegments([range(2 * B, 3 * B)])
@@ -220,10 +274,6 @@ def outer_test_level_2c(
 
     return test_level_2c
 
-def get_params_level_2c():
-    m, N, E, C = get_params_mNEC(level_num=4)
-    pass # TODO implement
-
 
 def outer_test_compute_M(
     N: int, E: int, C: int, prev_M: DisjointSegments, prev_s: int, B: int
@@ -246,13 +296,9 @@ def outer_test_compute_M(
     return test_compute_M
 
 
-def get_params_compute_M():
-    m, N, E, C = get_params_mNEC(level_num=5)
-    pass # TODO implement
+def outer_test_level_final(message: int):  # Challenge #6
 
-def outer_test_final_level(message: int):  # Challenge #6
-
-    def test_final_level(m: str):
+    def test_level_final(m: str):
         try:
             m = int(m)
         except:
