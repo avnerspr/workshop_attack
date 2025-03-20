@@ -288,6 +288,7 @@ def main():
     for iteration in range(1, MAX_ITER + 1):
         # steps 2-4
         res, M = algo_iteration(C0, M, s_list, iteration)
+        #print(M)
         if res:
             assert isinstance(M, int)
             result = long_to_bytes(M, KEY_SIZE // 8)
