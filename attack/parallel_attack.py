@@ -1,4 +1,3 @@
-from attacker import Attacker
 from results_for_testing import answers, S, correct_answer
 from multiserver_attacker import MultiServerAttacker
 from multiprocessing import Process, Pool
@@ -61,11 +60,11 @@ class ParallelAttacker:
 
         return result
 
-    def attacker_warper(self, ports: list):
+    def attacker_warper(self, hosts: list[str], ports: list[int]):
         ic("in attacker wrapper")
         ic(ports)
-        attacker: Attacker = Attacker(
-            self.N, self.E, self.ct, [self.host], ports, random_blinding=True
+        attacker: MultiServerAttacker = MultiServerAttacker(
+            self.N, self.E, self.ct, hosts, ports, random_blinding=True
         )
         ic("created attacker")
         result = attacker.attack()
@@ -78,7 +77,7 @@ class ParallelAttacker:
         with Pool(self.attacker_count) as pool:
             results = pool.map(
                 self.attacker_warper,
-                self._split_into_k_lists(self.ports, self.attacker_count),
+                self._split_into_k_lists(self.ports, self.attacker_count), # fix this
             )
 
         ic("got results")
@@ -93,11 +92,11 @@ class ParallelAttacker:
 
         return self.conclusion(range_list, s_list)
 
-    def conclusion(self, ranges: list[range], S: list[int]) -> int:
+    def conclusion(self, ranges: list[range], S0: list[int], Si: list[int]) -> int:
         """
         Conclusion of the attack, using the LLL algorithm to find the plaintext from the information gathered
         """
-        v0 = S + [0]
+        v0 = Si + [0]
         vf = [r.start for r in ranges] + [
             ((self.N * (self.attacker_count - 1))) // self.attacker_count
         ]
@@ -113,7 +112,7 @@ class ParallelAttacker:
             # R = reduced_basis[-1]
             # # ic(R)
             for i in range(len(R) - 1):
-                m = ((R[i] + vf[i]) * pow(S[i], -1, self.N)) % self.N
+                m = ((R[i] + vf[i]) * pow(S0[i] * Si[i], -1, self.N)) % self.N
                 ic(long_to_bytes(m))
         ic(R[-1] == -(self.N * (self.attacker_count - 1)) // self.attacker_count)
         return m
