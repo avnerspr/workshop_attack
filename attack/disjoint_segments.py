@@ -4,10 +4,12 @@ from icecream import ic
 from functools import reduce
 import json
 
+
 class UserSet(Hashable, MutableSet):
     """
     A set that is hashable.
     """
+
     __hash__ = MutableSet._hash
 
     def __init__(self, iterable=()):
@@ -36,7 +38,7 @@ class DisjointSegments(UserSet):
     """
     A disjoint set of ranges.
     """
-    
+
     @staticmethod
     def intersect(range1: range, range2: range) -> bool:
         """
@@ -63,13 +65,13 @@ class DisjointSegments(UserSet):
         start = min(val.start for val in to_merge)
         stop = max(val.stop for val in to_merge)
         self.data.add(range(start, stop))
-    
+
     def size(self) -> int:
         """
         Returns the total size of all the ranges in the disjoint set.
         """
         return reduce(lambda a, b: a + b, ((r.stop - r.start) for r in self.data))
-    
+
     def smallest_inclusive(self) -> range:
         """
         Returns the smallest range that includes all the ranges in the disjoint set.
@@ -77,33 +79,35 @@ class DisjointSegments(UserSet):
         start = min(val.start for val in self.data)
         stop = max(val.stop for val in self.data)
         return range(start, stop)
-    
+
     def len(self) -> int:
         """
         Returns the number of ranges in the disjoint set.
         """
         return len(self.data)
-    
+
     def tolist(self) -> list[range]:
         """
         Returns the disjoint set as a list.
         """
         return list(self.data)
-    
+
     def serialize(self) -> str:
         """
         Returns a JSON serialized version of the disjoint set.
         """
         return json.dumps([(val.start, val.stop) for val in self.data])
-    
+
     @classmethod
     def deserialize(cls, data: str) -> "DisjointSegments":
         """
         Returns a DisjointSegments object from a JSON serialized string.
         """
         return cls(range(val[0], val[1]) for val in json.loads(data))
-        
-        
+
+    def __str__(self) -> str:
+        return self.serialize()
+
 
 if __name__ == "__main__":
     dj = DisjointSegments()
@@ -116,11 +120,10 @@ if __name__ == "__main__":
     assert dj.size() == 13
     assert dj.smallest_inclusive() == range(2, 15)
     assert dj.len() == 1
-    
+
     dj2 = DisjointSegments.deserialize(dj.serialize())
     assert dj == dj2
     assert dj is not dj2
     assert dj.data is not dj2.data
     assert dj.data == dj2.data
     assert DisjointSegments() != dj
-    
