@@ -124,8 +124,7 @@ class ParallelAttacker:
         """
         Conclusion of the attack, using the LLL algorithm to find the plaintext from the information gathered
         """
-        # v0 = [si * s0 for si, s0 in zip(Si, S0)] + [0]
-        ans = bytes_to_long(correct_answer)
+        m: int = 0
 
         v0 = S0 + [0]
         vf = [r.start for r in ranges] + [
@@ -135,8 +134,6 @@ class ParallelAttacker:
             (([0] * i) + [self.N] + ([0] * (self.attacker_count - i))).copy()
             for i in range(self.attacker_count)
         ]
-        wanted = [(ans * si - ai) % self.N for si, ai in zip(Si, vf)]
-        wanted.append((self.N * (self.attacker_count - 1)) // self.attacker_count)
 
         M = matrix(ZZ, [v0] + middle + [vf])
         reduced_basis = list(M.LLL())
@@ -155,7 +152,7 @@ def vec_norm(vec: list[int]) -> int:
     return sum(x * x for x in vec)
 
 
-if __name__ == "__main__":
+def main():
     my_args = attack_arguments_parser()
 
     num_of_servers: int = 15
@@ -178,7 +175,8 @@ if __name__ == "__main__":
     PORTS = [base_port + i for i in range(num_of_servers)]
     n, e = get_public()
     parallel = ParallelAttacker(n, e, get_cipher(), num_of_attackers, HOSTS, PORTS)
-    print(
-        parallel._split_into_k_lists(num_of_servers // num_of_attackers, [HOSTS, PORTS])
-    )
     parallel.attack()
+
+
+if __name__ == "__main__":
+    main()

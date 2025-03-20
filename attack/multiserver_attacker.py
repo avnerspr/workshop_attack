@@ -70,8 +70,8 @@ class MultiServerAttacker:
         N: int,
         E: int,
         ct: int,
-        hosts: list[str] | str,
-        ports: list[int] | int,
+        hosts: list[str],
+        ports: list[int],
         random_blinding: bool = False,
         verbose: bool = False,
         iteration: int = 1,
@@ -94,10 +94,6 @@ class MultiServerAttacker:
         self.E = E
         self.ct = ct
         self.C = ct
-        if isinstance(hosts, str):
-            self.hosts = [hosts]
-        if isinstance(ports, int):
-            self.ports = [ports]
         self.thread_count = len(ports)
         self.conns = [
             init_oracle(host, port) for host, port in zip(hosts, ports, strict=True)

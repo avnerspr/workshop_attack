@@ -11,8 +11,8 @@ def get_public() -> tuple[int, int]:
     return pub_key.n, pub_key.e
 
 
-def get_cipher() -> int:
-    msg = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent quis tortor eget lacus viverra tristique pharetra. "
+def get_cipher(to_cypher: str) -> int:
+    msg = to_cypher.encode("utf-8")
     with open("public_key.rsa", "rb") as key_file:
         pub_key = RSA.import_key(key_file.read())
     cipher_rsa = PKCS1_v1_5.new(pub_key)
@@ -22,7 +22,7 @@ def get_cipher() -> int:
 
 if __name__ == "__main__":
     N, E = get_public()
-    C = get_cipher()
+    C = get_cipher("hello world")
     with open("attack/servers_addr.json", "w") as file:
         json.dump(
             {
