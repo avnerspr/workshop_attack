@@ -1,4 +1,5 @@
 from attacker import Attacker
+from results_for_testing import answers, S, correct_answer
 from multiserver_attacker import MultiServerAttacker
 from multiprocessing import Process, Pool
 from icecream import ic
@@ -98,7 +99,7 @@ class ParallelAttacker:
         """
         v0 = S + [0]
         vf = [r.start for r in ranges] + [
-            (self.N * (self.attacker_count - 1)) // self.attacker_count
+            ((self.N * (self.attacker_count - 1))) // self.attacker_count
         ]
         middle = [
             (([0] * i) + [self.N] + ([0] * (self.attacker_count - i))).copy()
@@ -130,9 +131,13 @@ if __name__ == "__main__":
     PORTS = [8001 + i for i in range(15)]
     n, e = get_public()
     ic("got public")
-    parallel = ParallelAttacker(n, e, get_cipher(), 3, HOSTS, PORTS)
+    parallel = ParallelAttacker(n, e, get_cipher(), 8, HOSTS, PORTS)
     ic("created parallel attacker")
-    parallel.attack()
+    # parallel.attack()
+    # M = matrix(ZZ, [[1,2,3,0], [1,0,0,0], [0,1,0,0], []] +  + [vf])
+    for s, ans in zip(S, answers):
+        ic(s // n)
+    parallel.conclusion(answers, S)
     # m = matrix(ZZ, [[7, 2], [5, 3]])
     # res, t = ic(m.LLL(transformation = True))
     # ic(t * m)
