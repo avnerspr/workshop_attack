@@ -230,7 +230,8 @@ class MultiServerAttacker:
         # step 3
         self.update_intervals(self.s_list[-1])
         self.last_print = self.cyber_print(
-            str(
+            f"iteration: {self.iteration}\t\t"
+            + str(
                 long_to_bytes(
                     (self.M.tolist()[0].start * pow(self.s0, -1, self.N)) % self.N
                 )
@@ -238,8 +239,8 @@ class MultiServerAttacker:
             self.last_print,
         )
 
-        if self.iteration <= 5 or self.iteration % 50 == 0:
-            ic(self.iteration)
+        # if self.iteration <= 5 or self.iteration % 50 == 0:
+        #     ic(self.iteration)
         # ic(self.M.size())
 
         # step 4
