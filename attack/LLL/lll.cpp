@@ -54,7 +54,14 @@ void lllAlgorithm(std::vector<std::vector<double>> &basis, double delta = 0.75)
             // Step 1: Size reduction
             for (size_t j = i - 1; j < i; --j) {
                 // mu = <b[i], b*[j]> / <b*[j], b*[j]>
-                double mu = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[j].begin(), 0.0) / std::inner_product(orthogonalBasis[j].begin(), orthogonalBasis[j].end(), orthogonalBasis[j].begin(), 0.0);
+                double mu = std::inner_product(basis[i].begin(),
+                                basis[i].end(),
+                                orthogonalBasis[j].begin(),
+                                0.0)
+                    / std::inner_product(orthogonalBasis[j].begin(),
+                        orthogonalBasis[j].end(),
+                        orthogonalBasis[j].begin(),
+                        0.0);
 
                 if (std::abs(mu) > 0.5) {
                     // Round mu to the nearest integer
@@ -67,10 +74,24 @@ void lllAlgorithm(std::vector<std::vector<double>> &basis, double delta = 0.75)
 
             // Step 2: Check the Lovász condition
 
-            double mu_cond = std::inner_product(basis[i].begin(), basis[i].end(), orthogonalBasis[i - 1].begin(), 0.0) / std::inner_product(orthogonalBasis[i - 1].begin(), orthogonalBasis[i - 1].end(), orthogonalBasis[i - 1].begin(), 0.0);
+            double mu_cond = std::inner_product(basis[i].begin(),
+                                 basis[i].end(),
+                                 orthogonalBasis[i - 1].begin(),
+                                 0.0)
+                / std::inner_product(orthogonalBasis[i - 1].begin(),
+                    orthogonalBasis[i - 1].end(),
+                    orthogonalBasis[i - 1].begin(),
+                    0.0);
             double mu_cond_squared = mu_cond * mu_cond;
-            double lhs = std::inner_product(orthogonalBasis[i].begin(), orthogonalBasis[i].end(), orthogonalBasis[i].begin(), 0.0);
-            double rhs = (delta - mu_cond_squared) * std::inner_product(orthogonalBasis[i - 1].begin(), orthogonalBasis[i - 1].end(), orthogonalBasis[i - 1].begin(), 0.0);
+            double lhs = std::inner_product(orthogonalBasis[i].begin(),
+                orthogonalBasis[i].end(),
+                orthogonalBasis[i].begin(),
+                0.0);
+            double rhs = (delta - mu_cond_squared)
+                * (std::inner_product(orthogonalBasis[i - 1].begin(),
+                    orthogonalBasis[i - 1].end(),
+                    orthogonalBasis[i - 1].begin(),
+                    0.0));
 
             if (lhs < rhs) {
                 // Swap basis vectors if the condition is violated
