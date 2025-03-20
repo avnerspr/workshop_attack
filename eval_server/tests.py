@@ -326,7 +326,7 @@ TESTERS = [
     outer_test_level_2b,
     outer_test_level_2c,
     outer_test_compute_M,
-    outer_test_final_level,
+    outer_test_level_final,
 ]
 
 

@@ -24,8 +24,9 @@ def main():
     server = EvalServer(args.host, int(args.port))
 
     N, E = get_public()
-    C = get_cipher()
-    blinding_test = tests.outer_test_blinding(tests.N_VALUES[0], tests.E, tests.MESSAGES[0])
+    message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
+    C = get_cipher(message)
+    blinding_test = tests.outer_test_blinding(N, E, C)
     server.add_test("blinding", blinding_test, {})
     server.run()
 
