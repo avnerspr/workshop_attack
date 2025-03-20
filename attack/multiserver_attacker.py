@@ -252,7 +252,7 @@ class MultiServerAttacker:
 
         return False, self.M
 
-    def attack(self) -> tuple[range, int]:
+    def attack(self) -> tuple[range, int, int]:
         ic("started attack")
         self.blinding()
         ic("did blinding")
@@ -269,7 +269,7 @@ class MultiServerAttacker:
                     conn.close()
                 # ic(len(self.s_list))
                 ic(ans, self.s0)
-                return ans, self.s0
+                return ans, self.s0, self.s_list[-1]
             self.iteration += 1
 
 
