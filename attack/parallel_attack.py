@@ -8,6 +8,7 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 from LLL.lll import LLLWrapper
 from pathlib import Path
 from socket import SHUT_RDWR
+from typing import Iterator, Any
 from sage.all import matrix, ZZ
 
 
@@ -35,30 +36,25 @@ def get_cipher() -> int:
 class ParallelAttacker:
 
     def __init__(
-        self, N: int, E: int, ct: int, attacker_amount: int, host: str, ports: list[int]
+        self,
+        N: int,
+        E: int,
+        ct: int,
+        attacker_amount: int,
+        hosts: list[str],
+        ports: list[int],
     ) -> None:
         self.N = N
         self.E = E
         self.ct = ct
-        self.host = host
+        self.hosts = hosts
         self.ports = ports
         self.attacker_count = attacker_amount
 
-    def _split_into_k_lists(self, input_list: list, K: int):
+    def _split_into_k_lists(self, K: int, input_lists: list[Iterator[Any]]):
         # Calculate the approximate size of each chunk
-        avg_size = len(input_list) // K
-        remainder = len(input_list) % K
-
-        result = []
-        start = 0
-
-        for i in range(K):
-            # Determine the end index for the current sublist
-            end = start + avg_size + (1 if i < remainder else 0)
-            result.append(input_list[start:end])
-            start = end
-
-        return result
+        zipped = zip(*input_lists, strict=True)
+        return [zipped[i::K] for i in range(K)]
 
     def attacker_warper(self, hosts: list[str], ports: list[int]):
         ic("in attacker wrapper")
@@ -77,20 +73,24 @@ class ParallelAttacker:
         with Pool(self.attacker_count) as pool:
             results = pool.map(
                 self.attacker_warper,
-                self._split_into_k_lists(self.ports, self.attacker_count), # fix this
+                self._split_into_k_lists(
+                    self.attacker_count, [self.hosts, self.ports]
+                ),  # fix this
             )
 
         ic("got results")
         # ic(results)
 
         range_list = []
-        s_list = []
+        s0_list = []
+        si_list = []
 
         for result in results:
             range_list.append(result[0])
-            s_list.append(result[1])
+            s0_list.append(result[1])
+            si_list.append(result[2])
 
-        return self.conclusion(range_list, s_list)
+        return self.conclusion(range_list, s0_list, si_list)
 
     def conclusion(self, ranges: list[range], S0: list[int], Si: list[int]) -> int:
         """
