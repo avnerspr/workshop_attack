@@ -11,6 +11,7 @@ from typing import Iterator
 import sys
 import os
 import textwrap
+import json
 
 
 def ceil_div(x: int, y: int) -> int:
@@ -273,27 +274,11 @@ class MultiServerAttacker:
             self.iteration += 1
 
 
-# ! only for testing
-def get_public() -> tuple[int, int]:
-    with open("public_key.rsa", "rb") as key_file:
-        pub_key = RSA.import_key(key_file.read())
-    return pub_key.n, pub_key.e
-
-
-def get_cipher() -> int:
-    msg = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent quis tortor eget lacus viverra tristique pharetra. "
-    with open("public_key.rsa", "rb") as key_file:
-        pub_key = RSA.import_key(key_file.read())
-    cipher_rsa = PKCS1_v1_5.new(pub_key)
-
-    return bytes_to_long(cipher_rsa.encrypt(msg))
-
-
 if __name__ == "__main__":
-    HOSTS = ["localhost"] * 5
-    PORTS = [8001, 8002, 8003, 8004, 8005]
-    n, e = get_public()
-    attacker = MultiServerAttacker(n, e, get_cipher(), HOSTS, PORTS)
-    res_range, s0 = attacker.attack()
-    res = res_range.start
-    # ic(res)
+    with open("attack/servers_addr.json", "r") as file:
+        params = json.load(file)
+    attacker = MultiServerAttacker(
+        params["N"], params["E"], params["C"], params["hosts"], params["ports"]
+    )
+    ans = attacker.attack()[0].start
+    print(f"answer = {ans}")
