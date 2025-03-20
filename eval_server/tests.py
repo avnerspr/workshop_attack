@@ -152,7 +152,6 @@ def get_params_level_2a(key: RSA.RsaKey) -> dict[str, str]:
     C0, s0 = blinding(N, E, C)
     return {"N": str(N), "E": str(E), "C0": str(C0)}
 
-[OWURGSNCVM, ]
 def outer_test_level_2b(
     N: int, E: int, C: int, M: DisjointSegments, prev_s: int
 ):  # Challenge #3
