@@ -292,3 +292,12 @@ GET_PARAMS = [
     get_params_compute_M,
     get_params_final_level,
 ]
+
+NAMES = [
+    "blinding", 
+    "level_2a",
+    "level_2b",
+    "level_2c",
+    "compute_M",
+    "final_level",
+]
