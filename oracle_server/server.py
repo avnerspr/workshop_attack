@@ -1,10 +1,10 @@
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
-from connection import Connection
+from utils.connection import Connection
 import socket
 from icecream import ic
 from Crypto.Util.number import bytes_to_long, getPrime, isPrime
-from rsa import check_padding
+from utils.rsa import check_padding
 import argparse
 import multiprocessing
 from time import sleep

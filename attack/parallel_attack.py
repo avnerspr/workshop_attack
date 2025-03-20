@@ -1,11 +1,11 @@
-from attacker import Attacker
-from multiserver_attacker import MultiServerAttacker
+from attack.attacker import Attacker
+from attack.multiserver_attacker import MultiServerAttacker
 from multiprocessing import Process, Pool
 from icecream import ic
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from LLL.lll import LLLWrapper
+from utils.LLL.lll import LLLWrapper
 from pathlib import Path
 from socket import SHUT_RDWR
 from sage.all import matrix, ZZ

@@ -4,12 +4,8 @@ from attack.bleichenbacher import (
     ceil_div,
     search_start,
     blinding,
-    N,
-    E,
-    K,
-    B,
 )
-from rsa import check_padding
+from utils.rsa import check_padding
 from attack.disjoint_segments import DisjointSegments
 from Crypto.PublicKey import RSA
 from random import randint

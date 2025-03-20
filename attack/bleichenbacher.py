@@ -3,8 +3,8 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from math import ceil, floor
-from oracle import oracle, init_oracle, KEY_SIZE
-from disjoint_segments import DisjointSegments
+from attack.oracle import oracle, init_oracle, KEY_SIZE
+from attack.disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
 
