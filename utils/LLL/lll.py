@@ -1,7 +1,5 @@
 import ctypes
 from pathlib import Path
-import gmpy2
-from icecream import ic
 
 BASE = 10
 
@@ -78,4 +76,4 @@ class LLLWrapper:
 if __name__ == "__main__":
     wrapper = LLLWrapper(Path("liblll.so"))
     result = wrapper.lll([[1, 2, 3, 4], [3, 1, 4, 1], [5, 9, 2, 6], [5, 3, 5, 8]])
-    ic(result)
+    print(result)
