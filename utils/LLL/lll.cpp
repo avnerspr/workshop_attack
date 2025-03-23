@@ -1,12 +1,11 @@
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include <iostream>
 #include <vector>
 #include <gmpxx.h>
 #include <cmath>
 
-namespace py = pybind11;
+#include "lll.hpp"
 
+#define BASE (10)
 
 mpz_class floor_mpq(const mpq_class& q) {
     mpz_class num = q.get_num();  // Get the numerator
@@ -147,27 +146,48 @@ void printBasis(const std::vector<std::vector<mpz_class>>& basis) {
     }
 }
 
-PYBIND11_MODULE(lll, m) {
-    m.def("lll_algorithm", &lllAlgorithm, "LLL algorithm for lattice basis reduction");
+
+std::vector<std::vector<mpz_class>> convertToMpzVector(char*** string_matrix, int num_rows, const int* num_cols) {
+    std::vector<std::vector<mpz_class>> result;
+    for (int i = 0; i < num_rows; ++i) {
+        std::vector<mpz_class> row;
+        for (int j = 0; j < num_cols[i]; ++j) {
+            mpz_class value(string_matrix[i][j]);
+            row.push_back(value);
+        }
+        result.push_back(row);
+    }
+    return result;
 }
 
-// int main() {
-//     // Define a basis with large integers (mpz_class)
-//     std::vector<std::vector<mpz_class>> basis = {
-//         { 1, 2, 3, 4 },
-//         { 3, 1, 4, 1 },
-//         { 5, 9, 2, 6 },
-//         { 5, 3, 5, 8 }
-//     };
+char*** createStringMatrix(const std::vector<std::vector<mpz_class>> data) {
+    char*** ans = (char***)calloc(data.size(), sizeof(char**));
+    for (int i = 0; i < data.size(); ++i) {
+        ans[i] = (char**)calloc(data[i].size(), sizeof(char*));
+        for (int j = 0; j < data[i].size(); ++j) {
+            ans[i][j] = strdup(data[i][j].get_str(BASE).c_str());
+        }
+    }
+    return ans;
+}
 
-//     std::cout << "Original Basis:" << std::endl;
-//     printBasis(basis);
 
-//     // Perform LLL reduction
-//     lllAlgorithm(basis);
+extern "C" char*** lll(char*** string_matrix, int num_rows, int* num_cols, double delta) {
+    std::vector<std::vector<mpz_class>> input = convertToMpzVector(string_matrix, num_rows, num_cols);
+    
+    lllAlgorithm(input, delta);
+    
+    char*** ans = createStringMatrix(input);
+    return ans;
+}
 
-//     std::cout << "Reduced Basis:" << std::endl;
-//     printBasis(basis);
 
-//     return 0;
-// }
+extern "C" void free_matrix(char*** string_matrix, int num_rows, int* num_cols) {
+    for (int i = 0; i < num_rows; i++) {
+        for (int j = 0; j < num_cols[i]; j++) {
+            free(string_matrix[i][j]);
+        }
+        free(string_matrix[i]);
+    }
+    free(string_matrix);
+}

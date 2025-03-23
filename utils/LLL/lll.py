@@ -1,6 +1,9 @@
 import ctypes
-import numpy as np
 from pathlib import Path
+import gmpy2
+from icecream import ic
+
+BASE = 10
 
 
 class LLLWrapper:
@@ -13,42 +16,66 @@ class LLLWrapper:
         """
         self.lib = ctypes.CDLL(str(library_path.absolute()))
 
-        # Define the function prototype
+        # Define function prototype
         self.lib.lll.argtypes = (
-            ctypes.POINTER(ctypes.c_double),
-            ctypes.c_int,
-            ctypes.c_int,
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_char_p)),  # 2D array of strings
+            ctypes.c_int,  # Number of rows
+            ctypes.POINTER(ctypes.c_int),  # Number of columns per row
+            ctypes.c_double,  # delta
         )
-        self.lib.lll.restype = None
+        self.lib.lll.restype = ctypes.POINTER(
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_char))
+        )
 
-    def lll(self, lattice: list[list[int]]) -> list[list[int]]:
+        self.lib.free_matrix.argtypes = (
+            ctypes.POINTER(
+                ctypes.POINTER(ctypes.POINTER(ctypes.c_char))
+            ),  # 2D array of strings
+            ctypes.c_int,  # Number of rows
+            ctypes.POINTER(ctypes.c_int),  # Number of columns per row
+        )
+        self.lib.free_matrix.restype = None
+
+    def lll(self, matrix: list[list[int]], delta: float = 0.75) -> list[list[int]]:
         """
-        Perform LLL reduction on the provided lattice.
+        Process a list of lists of strings via the LLL C function.
 
         Parameters:
-            lattice (list[list[int]]): The input lattice as a 2D list of integers.
+            string_matrix (list[list[str]]): List of lists of strings.
 
         Returns:
-            list[list[int]]: The modified lattice after LLL reduction.
+            list[list[str]]: Modified list of lists of strings.
         """
-        # Convert the 2D list to a NumPy array of type double
-        lattice_array = np.array(lattice, dtype=np.float64)
-        num_of_vectors, vector_dimension = lattice_array.shape
+        string_matrix: list[list[str]] = [[str(x) for x in row] for row in matrix]
 
-        # Flatten the array for row-major order (C-style)
-        flat_lattice = lattice_array.flatten()
+        num_rows = len(string_matrix)
+        num_cols = (ctypes.c_int * num_rows)(*[len(row) for row in string_matrix])
 
-        # Convert to ctypes-compatible pointer
-        flat_lattice_ctypes = flat_lattice.ctypes.data_as(
-            ctypes.POINTER(ctypes.c_double)
-        )
+        # Convert to C-compatible 2D array of `char*`
+        c_string_matrix = (ctypes.POINTER(ctypes.c_char_p) * num_rows)()
+        for i, row in enumerate(string_matrix):
+            c_string_matrix[i] = (ctypes.c_char_p * len(row))(
+                *[s.encode("utf-8") for s in row]
+            )
 
-        # Call the C++ LLL function
-        self.lib.lll(flat_lattice_ctypes, num_of_vectors, vector_dimension)
+        c_delta = ctypes.c_double(delta)
 
-        # Reshape the flat array back to 2D and convert to a Python list
-        modified_lattice = flat_lattice.reshape(
-            (num_of_vectors, vector_dimension)
-        ).tolist()
+        # Call the C++ function (modifies in-place)
+        c_ans = self.lib.lll(c_string_matrix, num_rows, num_cols, c_delta)
 
-        return modified_lattice
+        result = [
+            [
+                int(ctypes.cast(c_ans[i][j], ctypes.c_char_p).value.decode(), BASE)
+                for j in range(len(string_matrix[i]))
+            ]
+            for i in range(num_rows)
+        ]
+        self.lib.free_matrix(c_ans, num_rows, num_cols)
+
+        return result
+
+
+if __name__ == "__main__":
+    wrapper = LLLWrapper(Path("liblll.so"))
+    result = wrapper.lll([[1, 2, 3, 4], [3, 1, 4, 1], [5, 9, 2, 6], [5, 3, 5, 8]])
+    ic(result)
