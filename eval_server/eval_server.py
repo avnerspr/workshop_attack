@@ -28,11 +28,7 @@ class EvalServer(socketserver.TCPServer):
         self.host: str = host
         self.port: int = port
 
-    def add_test(
-        self,
-        name: str,
-        test: TestCase
-    ) -> None:
+    def add_test(self, name: str, test: TestCase) -> None:
         """Registers a new test case with a given name, validation function, and metadata.
 
         Args:
@@ -99,9 +95,7 @@ class EvalRequestHandler(socketserver.BaseRequestHandler):
 
 def main():
     eval_server = EvalServer()
-    eval_server.add_test()
 
 
 if __name__ == "__main__":
     main()
-

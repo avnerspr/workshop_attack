@@ -1,3 +1,4 @@
+import threading
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
@@ -12,6 +13,7 @@ import os
 import textwrap
 import json
 import argparse
+from threading import Lock
 
 
 def ceil_div(x: int, y: int) -> int:
@@ -98,6 +100,8 @@ class MultiServerAttacker:
         self.conns = [
             init_oracle(host, port) for host, port in zip(hosts, ports, strict=True)
         ]
+        self.conn_to_lock = {conn: Lock() for conn in self.conns}
+        print(self.conns)
         self.K = len(long_to_bytes(N))
         self.B = pow(
             2, 8 * (self.K - 2)
@@ -123,7 +127,15 @@ class MultiServerAttacker:
         Returns:
             bool: The result returned by the oracle.
         """
-        return oracle(num, next(self.conn_cycler))
+
+        sock = next(self.conn_cycler)
+        lock = self.conn_to_lock[sock]
+        lock.acquire()
+        print(threading.current_thread(), " aquired lock")
+        result = oracle(num, sock)
+        lock.release()
+        print(threading.current_thread(), "realease")
+        return result
 
     def s_oracle(self, s: int) -> tuple[bool, int]:
         """
@@ -399,6 +411,8 @@ if __name__ == "__main__":
     host = "localhost"
     if my_args.host:
         base_port = my_args.host
+
+    print(f"main thread: {threading.current_thread()}")
 
     HOSTS = [host] * num_of_threads
     PORTS = [base_port + i for i in range(num_of_threads)]

@@ -3,7 +3,7 @@ from Crypto.Cipher import PKCS1_v1_5
 from utils.connection import Connection
 import socket
 from Crypto.Util.number import bytes_to_long, getPrime, isPrime
-from utils.rsa import check_padding
+from utils.rsa import check_padding, check_padding_private_key
 import argparse
 import multiprocessing
 from time import sleep
@@ -99,17 +99,19 @@ def server_loop(
         while True:
             try:
                 data = conn.recv(KEY_SIZE // 8)
+                print(f"Got {bytes_to_long(data)} from {sock.getpeername()}")
                 sleep(0.001)
                 if not data:
                     print(f"server: {port} closed: {addr}")
                     break
                 num_of_messages += 1
                 correct_pad = check_padding(cipher_rsa, data, sentinel=None)
+                # correct_pad = check_padding_private_key(data, cipher_rsa._key)
                 if correct_pad:
-                    conn.send(b"\x01")
+                    conn.send(b"\x01" * 128)
                 else:
-                    conn.send(b"\x00")
-                if verbose and (num_of_messages % 10000 == 0):
+                    conn.send(b"\x00" * 128)
+                if verbose and (num_of_messages % 1 == 0):
                     print(f"server: {port} got {num_of_messages} messages")
             except ConnectionError:
                 print(f"server: {port} connection error: {addr}")
