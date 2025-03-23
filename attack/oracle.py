@@ -1,6 +1,7 @@
 from socket import socket, AF_INET, SOCK_STREAM, SO_REUSEADDR
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from icecream import ic
+import threading
 
 KEY_SIZE = 1024
 
@@ -12,15 +13,23 @@ def init_oracle(host: str, port: int) -> socket:
 
 
 def oracle(num: int, sock: socket) -> bool:
+    oracle.count += 1
+
+    print(f"Sending {num} to {sock.getpeername()}")
     sendme = long_to_bytes(num, KEY_SIZE // 8)
     assert len(sendme) == (KEY_SIZE // 8)
     sock.sendall(sendme)
-    data = sock.recv(1)
+    print(f"sent {oracle.count} messages")
+    data = sock.recv(128)
 
     if not data:
-        raise ServerClosed
+        print(f"{sock} oh noe")
+        return False
+    else:
+        return data[0] == 1
 
-    return data[0] == 1
+
+oracle.count = 0
 
 
 class ServerClosed(ConnectionError):
