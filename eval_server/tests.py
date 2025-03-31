@@ -1,14 +1,10 @@
 from rsa import check_padding
 from attack.bleichenbacher import (
     search_mulitiple_intervals,
-    search_single_interval,
     ceil_div,
+    search_single_interval,
     search_start,
     blinding,
-    N,
-    E,
-    K,
-    B,
 )
 from attack.disjoint_segments import DisjointSegments
 from Crypto.PublicKey import RSA
@@ -34,7 +30,6 @@ PRIVATE_KEY_5 = RSA.generate(BITS_LENGTH)
 PRIVATE_KEY_6 = RSA.generate(BITS_LENGTH)
 
 print(PRIVATE_KEY_3.e)
-exit()
 
 
 def string_to_DisjointSegments(M: str):
@@ -78,7 +73,7 @@ def update_intervals(
         for r in r_range:
             pos_sol_range = range(
                 max(a, ceil_div(2 * B + r * N, prev_s)),
-                (min(b, (((3 * B - 1 + r * N) // prev_s))) + 1),
+                (min(b, ((3 * B - 1 + r * N) // prev_s)) + 1),
             )
 
             M_res.add(pos_sol_range)
@@ -88,7 +83,6 @@ def update_intervals(
 
 
 def outer_test_blinding(N: int, E: int, C: int):  # Challenge #1
-
     def test_blinding(s: str):
         try:
             s = int(s)
@@ -112,7 +106,6 @@ def generate_params_blinding(key: RSA.RsaKey) -> dict[str, Any]:
 
 
 def outer_test_level_2a(N: int, E: int, C0: int):  # Challenge #2
-
     def test_level_2a(s1):
         try:
             s1 = int(s1)
@@ -213,7 +206,6 @@ def outer_test_level_2c(
 def outer_test_compute_M(
     N: int, E: int, C: int, prev_M: DisjointSegments, prev_s: int, B: int
 ):  # Challenge #5
-
     def test_compute_M(M: str):
         try:
             M = string_to_DisjointSegments(M)
@@ -232,7 +224,6 @@ def outer_test_compute_M(
 
 
 def outer_test_level_final(message: int):  # Challenge #6
-
     def test_level_final(m: str):
         try:
             m = int(m)
