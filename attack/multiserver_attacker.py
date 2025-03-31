@@ -1,7 +1,5 @@
 import threading
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_v1_5
 from attack.oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from attack.disjoint_segments import DisjointSegments
 from random import randint
@@ -11,9 +9,8 @@ from typing import Iterator
 import sys
 import os
 import textwrap
-import json
 import argparse
-from threading import Lock
+from attack.create_attack_config import get_cipher, get_public
 
 
 def ceil_div(x: int, y: int) -> int:
@@ -100,8 +97,6 @@ class MultiServerAttacker:
         self.conns = [
             init_oracle(host, port) for host, port in zip(hosts, ports, strict=True)
         ]
-        self.conn_to_lock = {conn: Lock() for conn in self.conns}
-        print(self.conns)
         self.K = len(long_to_bytes(N))
         self.B = pow(
             2, 8 * (self.K - 2)
@@ -129,12 +124,7 @@ class MultiServerAttacker:
         """
 
         sock = next(self.conn_cycler)
-        lock = self.conn_to_lock[sock]
-        lock.acquire()
-        print(threading.current_thread(), " aquired lock")
         result = oracle(num, sock)
-        lock.release()
-        print(threading.current_thread(), "realease")
         return result
 
     def s_oracle(self, s: int) -> tuple[bool, int]:
@@ -385,19 +375,7 @@ class MultiServerAttacker:
             self.iteration += 1
 
 
-def get_cipher() -> int:
-    msg = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent quis tortor eget lacus viverra tristique pharetra. "
-    with open("public_key.rsa", "rb") as key_file:
-        pub_key = RSA.import_key(key_file.read())
-    cipher_rsa = PKCS1_v1_5.new(pub_key)
-
-    return bytes_to_long(cipher_rsa.encrypt(msg))
-
-
-if __name__ == "__main__":
-    with open("attack/servers_addr.json", "r") as file:
-        params = json.load(file)
-
+def main():
     my_args = attack_arguments_parser()
 
     num_of_threads: int = 5
@@ -412,14 +390,15 @@ if __name__ == "__main__":
     if my_args.host:
         base_port = my_args.host
 
-    print(f"main thread: {threading.current_thread()}")
-
+    N, E = get_public()
+    message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
+    C = get_cipher(message)
     HOSTS = [host] * num_of_threads
     PORTS = [base_port + i for i in range(num_of_threads)]
     attacker = MultiServerAttacker(
-        params["N"],
-        params["E"],
-        params["C"],
+        N,
+        E,
+        C,
         HOSTS,
         PORTS,
         my_args.random,
@@ -428,3 +407,8 @@ if __name__ == "__main__":
 
     res_range, s0, si = attacker.attack()
     res = res_range.start
+    return res
+
+
+if __name__ == "__main__":
+    main()

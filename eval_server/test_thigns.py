@@ -8,7 +8,7 @@ if __name__ == "__main__":
     message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
     C = get_cipher(message)
     host = "localhost"
-    port = 8888
+    port = 8001
     attacker = Attacker(N, E, C, host, port)
     answer = attacker.attack()
 
