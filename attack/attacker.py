@@ -1,12 +1,10 @@
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_v1_5
-from math import ceil, floor
 from attack.oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from attack.disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
 from socket import SHUT_RDWR
+from attack.create_attack_config import get_cipher, get_public
 
 
 def ceil_div(x: int, y: int) -> int:
@@ -182,3 +180,19 @@ class Attacker:
                 self.conn.close()
                 return ans, self.s0
             self.iteration += 1
+
+
+def main():
+    N, E = get_public()
+    message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
+    C = get_cipher(message)
+    host = "localhost"
+    port = 8001
+    attacker = Attacker(N, E, C, host, port)
+    answer = attacker.attack()
+
+    print(answer)
+
+
+if __name__ == "__main__":
+    main()

@@ -18,19 +18,3 @@ def get_cipher(to_cypher: str) -> int:
     cipher_rsa = PKCS1_v1_5.new(pub_key)
 
     return bytes_to_long(cipher_rsa.encrypt(msg))
-
-
-if __name__ == "__main__":
-    N, E = get_public()
-    C = get_cipher("hello world")
-    with open("attack/servers_addr.json", "w") as file:
-        json.dump(
-            {
-                "hosts": ["localhost"] * 5,
-                "ports": [8001, 8002, 8003, 8004, 8005],
-                "N": N,
-                "E": E,
-                "C": C,
-            },
-            file,
-        )

@@ -99,7 +99,7 @@ def server_loop(
         while True:
             try:
                 data = conn.recv(KEY_SIZE // 8)
-                print(f"Got {bytes_to_long(data)} from {sock.getpeername()}")
+                # print(f"Got {bytes_to_long(data)} from {sock.getpeername()}")
                 sleep(0.001)
                 if not data:
                     print(f"server: {port} closed: {addr}")
@@ -111,7 +111,7 @@ def server_loop(
                     conn.send(b"\x01" * 128)
                 else:
                     conn.send(b"\x00" * 128)
-                if verbose and (num_of_messages % 1 == 0):
+                if verbose and (num_of_messages % 10000 == 0):
                     print(f"server: {port} got {num_of_messages} messages")
             except ConnectionError:
                 print(f"server: {port} connection error: {addr}")

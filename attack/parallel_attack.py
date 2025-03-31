@@ -1,38 +1,19 @@
 from attack.attacker import Attacker
 from attack.multiserver_attacker import MultiServerAttacker
-from multiprocessing import Process, Pool
+from multiprocessing import Pool
 from icecream import ic
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from utils.LLL.lll import LLLWrapper
 from pathlib import Path
-from socket import SHUT_RDWR
-from typing import Iterator, Any
 from sage.all import matrix, ZZ
 import argparse
-import json
+from attack.create_attack_config import get_cipher, get_public
 
 
 LLL = LLLWrapper(
     Path("attack/LLL/liblll.so")
 )  # ! maybe should return a list[list[int]] instead of list[list[float]]
 lll = LLL.lll
-
-
-def get_public() -> tuple[int, int]:
-    with open("public_key.rsa", "rb") as key_file:
-        pub_key = RSA.import_key(key_file.read())
-    return pub_key.n, pub_key.e
-
-
-def get_cipher() -> int:
-    msg = b"hello_world"
-    with open("public_key.rsa", "rb") as key_file:
-        pub_key = RSA.import_key(key_file.read())
-    cipher_rsa = PKCS1_v1_5.new(pub_key)
-
-    return bytes_to_long(cipher_rsa.encrypt(msg))
 
 
 def attack_arguments_parser() -> argparse.Namespace:
@@ -209,8 +190,6 @@ def main():
     The main entry point of the program. Loads attack parameters, parses command-line arguments,
     and starts the parallelized Bleichenbacher attack.
     """
-    with open("attack/servers_addr.json", "r") as file:
-        params = json.load(file)
     my_args = attack_arguments_parser()
 
     num_of_servers: int = 15
@@ -229,11 +208,12 @@ def main():
     if my_args.host:
         base_port = my_args.host
 
+    N, E = get_public()
+    message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
+    C = get_cipher(message)
     HOSTS = [host] * num_of_servers
     PORTS = [base_port + i for i in range(num_of_servers)]
-    parallel = ParallelAttacker(
-        params["N"], params["E"], params["C"], num_of_attackers, HOSTS, PORTS
-    )
+    parallel = ParallelAttacker(N, E, C, num_of_attackers, HOSTS, PORTS)
     parallel.attack()
 
 
