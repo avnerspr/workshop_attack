@@ -4,7 +4,6 @@ from icecream import ic
 
 
 def check_padding(self, ciphertext, sentinel, expected_pt_len=0):
-
     k = self._key.size_in_bytes()
 
     if len(ciphertext) != k:

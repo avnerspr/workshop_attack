@@ -1,4 +1,4 @@
-from eval_server import tests
+import eval_server.tests as tests
 from eval_server.eval_server import EvalServer, TestCase
 from attack.create_attack_config import get_cipher, get_public
 
@@ -26,7 +26,8 @@ def main():
     message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
     C = get_cipher(message)
     blinding_test = tests.outer_test_blinding(N, E, C)
-    server.add_test("blinding", blinding_test, {})
+    server.add_test("blinding", TestCase(blinding_test, {}))
+    server.run()
 
 
 if __name__ == "__main__":
