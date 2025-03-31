@@ -296,4 +296,3 @@ NAMES = [
     "compute_M",
     "final_level",
 ]
-
