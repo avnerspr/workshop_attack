@@ -1,8 +1,7 @@
 from attack.bleichenbacher import (
-    search_mulitiple_intervals,
     ceil_div,
 )
-from utils.attack_utils import search_start
+from utils.attack_utils import search_start, search_mulitiple_intervals
 from utils.rsa import check_padding_private_key
 from attack.disjoint_segments import DisjointSegments
 from Crypto.PublicKey import RSA
@@ -59,21 +58,21 @@ def get_params_mNEC(level_num):
     return m, N, E, C
 
 
-def blinding(N: int, E: int, C: int) -> Tuple[int, int]:
+def blinding(N: int, E: int, C: int, key: RsaKey) -> Tuple[int, int]:
     for s0 in range(1, N):
         C0 = C * pow(s0, E, N) % N
-        if check_padding(C0):
+        if check_padding_private_key(long_to_bytes(C0), key):
             return C0, s0
 
 
 def search_single_interval(
-    N: int, E: int, C: int, interval: range, s_list: list[int], B: int
+    N: int, E: int, C: int, interval: range, s_list: list[int], B: int, key: RsaKey
 ):
     a, b = interval.start, interval.stop - 1
     for r_i in range(2 * ceil_div(b * s_list[-1] - 2 * B, N), N):
         s_i = ceil_div(2 * B + r_i * N, b)
         if s_i * a < (3 * B + r_i * N):
-            if check_padding(C * pow(s_i, E) % N):
+            if check_padding_private_key(long_to_bytes(C * pow(s_i, E) % N), key):
                 s_list.append(s_i)
                 return r_i, s_i
 
@@ -111,7 +110,7 @@ def outer_test_blinding(key: RsaKey, C: int):  # Challenge #1
         if check_padding_private_key(with_s, key):
             return (
                 True,
-                'You successfully solved level 1. The flag for the next level is "secret_flag_3Kf03JF2hmfc3IxM"',
+                "You successfully solved level 1.",
             )
         else:
             return False, "Attempt failed. Incorrect blinding value"
@@ -133,7 +132,7 @@ def outer_test_level_2a(key: RsaKey, C0: int):  # Challenge #2
         if s1 == search_start(C0, list(), key):
             return (
                 True,
-                'You successfully solved level 2. The flag for the next level is "secret_flag_G5kqD94kd0soFjZ1"',
+                "You successfully solved level 2.",
             )
 
         else:
@@ -144,12 +143,12 @@ def outer_test_level_2a(key: RsaKey, C0: int):  # Challenge #2
 
 def get_params_level_2a(key: RSA.RsaKey) -> dict[str, str]:
     m, N, E, C = get_params_mNEC(level_num=2)
-    C0, s0 = blinding(N, E, C)
+    C0, s0 = blinding(N, E, C, key)
     return {"N": str(N), "E": str(E), "C0": str(C0)}
 
 
 def outer_test_level_2b(
-    N: int, E: int, C: int, M: DisjointSegments, prev_s: int
+    key: RsaKey, C: int, M: DisjointSegments, prev_s: int
 ):  # Challenge #3
     # |M| > 1
 
@@ -158,10 +157,10 @@ def outer_test_level_2b(
             s = int(s)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if s == search_mulitiple_intervals(C, [prev_s]):
+        if s == search_mulitiple_intervals(C, [prev_s], key):
             return (
                 True,
-                'You successfully solved level 3. The flag for the next level is "secret_flag_3nG9fL4ofpEj46vj"',
+                "You successfully solved level 3.",
             )
         else:
             return False, "Attempt failed. Incorrect value of s"
@@ -191,7 +190,7 @@ def get_params_level_2b(key: RSA.RsaKey) -> dict[str, str]:  # TODO implement
 
 
 def outer_test_level_2c(
-    N: int, E: int, C: int, M: DisjointSegments, prev_s: int, B
+    key: RsaKey, C: int, M: DisjointSegments, prev_s: int, B
 ):  # Challenge #4
     # |M| == 1
 
@@ -204,10 +203,13 @@ def outer_test_level_2c(
             return False, "Attempt failed. Incorrect value format"
 
         # if (r, s) == search_single_interval(N,E,C,list(M)[0], [prev_s],B):
-        if s == search_single_interval(N, E, C, list(M)[0], [prev_s], B)[1]:
+        if (
+            s
+            == search_single_interval(key.n, key.e, C, list(M)[0], [prev_s], B, key)[1]
+        ):
             return (
                 True,
-                'You successfully solved level 4. The flag for the next level is "secret_flag_5Kfk19fqeJ61jsm3"',
+                "You successfully solved level 4.",
             )
 
         else:
@@ -222,7 +224,7 @@ def get_params_level_2c():
 
 
 def outer_test_compute_M(
-    N: int, E: int, C: int, prev_M: DisjointSegments, prev_s: int, B: int
+    key: RsaKey, C: int, prev_M: DisjointSegments, prev_s: int, B: int
 ):  # Challenge #5
     def test_compute_M(M: str):
         try:
@@ -230,10 +232,10 @@ def outer_test_compute_M(
         except:
             return False, "Attempt failed. Incorrect value format"
 
-        if M == update_intervals(N, prev_M, prev_s, B):
+        if DisjointSegments.compare(M, update_intervals(key.n, prev_M, prev_s, B)):
             return (
                 True,
-                'You successfully solved level 5. The flag for the next level is "secret_flag_o1q9cMf43kVl2a6x"',
+                "You successfully solved level 5.",
             )
         else:
             return False, "Attempt failed. Incorrect value of M"
@@ -256,12 +258,12 @@ def outer_test_final_level(message: int):  # Challenge #6
         if m == message:
             return (
                 True,
-                'You successfully solved level 6. The flag for the next level is "secret_flag_p0voqE4iUv0Q8t35"',
+                "You successfully solved level 6.",
             )
         else:
             return False, "Attempt failed. Incorrect value of M"
 
-    return test_final_level
+    return test_level_final
 
 
 def get_params_final_level():

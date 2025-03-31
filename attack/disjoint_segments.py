@@ -50,6 +50,10 @@ class DisjointSegments(UserSet):
             return True
         return False
 
+    @staticmethod
+    def compare(M1, M2) -> bool:
+        return str(M1) == str(M2)
+
     def add(self, item: range) -> None:
         """
         Adds a range to the disjoint set. If the range intersects with any of the existing ranges, it will merge them.
