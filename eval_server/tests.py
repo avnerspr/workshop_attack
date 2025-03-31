@@ -1,16 +1,15 @@
 from attack.bleichenbacher import (
     search_mulitiple_intervals,
     ceil_div,
-    search_single_interval,
-    search_start,
-    blinding,
 )
-from utils.rsa import check_padding
+from utils.attack_utils import search_start
+from utils.rsa import check_padding_private_key
 from attack.disjoint_segments import DisjointSegments
 from Crypto.PublicKey import RSA
 from random import randint
 from typing import Any, Tuple
 from Crypto.Util.number import long_to_bytes, bytes_to_long
+from Crypto.PublicKey.RSA import RsaKey
 
 
 BITS_LENGTH = 1024
@@ -102,13 +101,14 @@ def update_intervals(
     return M_res
 
 
-def outer_test_blinding(N: int, E: int, C: int):  # Challenge #1
+def outer_test_blinding(key: RsaKey, C: int):  # Challenge #1
     def test_blinding(s: str):
         try:
             s = int(s)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if check_padding(C * pow(s, E) % N):
+        with_s = long_to_bytes(C * pow(s, key.e) % key.n)
+        if check_padding_private_key(with_s, key):
             return (
                 True,
                 'You successfully solved level 1. The flag for the next level is "secret_flag_3Kf03JF2hmfc3IxM"',
@@ -124,13 +124,13 @@ def get_params_blinding() -> dict[str, Any]:
     return {"N": str(N), "E": str(E), "C": str(C)}
 
 
-def outer_test_level_2a(N: int, E: int, C0: int):  # Challenge #2
+def outer_test_level_2a(key: RsaKey, C0: int):  # Challenge #2
     def test_level_2a(s1):
         try:
             s1 = int(s1)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if s1 == search_start(C0, list()):
+        if s1 == search_start(C0, list(), key):
             return (
                 True,
                 'You successfully solved level 2. The flag for the next level is "secret_flag_G5kqD94kd0soFjZ1"',

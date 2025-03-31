@@ -1,9 +1,11 @@
 import eval_server.tests as tests
 from eval_server.eval_server import EvalServer, TestCase
-from attack.create_attack_config import get_cipher, get_public
+from attack.create_attack_config import get_cipher
 
 from typing import Callable, Dict, Any, Tuple
 from argparse import ArgumentParser, Namespace
+
+from Crypto.PublicKey.RSA import import_key, RsaKey
 
 
 def get_arguments() -> Namespace:
@@ -18,15 +20,24 @@ def get_arguments() -> Namespace:
     return parser.parse_args()
 
 
+def add_tests(server: EvalServer, key: RsaKey):
+    message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
+    C = get_cipher(message)
+
+    blinding_test = tests.outer_test_blinding(key, C)
+    server.add_test("blinding", TestCase(blinding_test, {}))
+
+    twoA_test = tests.outer_test_level_2a(key, C)
+    server.add_test("2a", TestCase(twoA_test, {}))
+
+
 def main():
     args = get_arguments()
     server = EvalServer(args.host, int(args.port))
 
-    N, E = get_public()
-    message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
-    C = get_cipher(message)
-    blinding_test = tests.outer_test_blinding(N, E, C)
-    server.add_test("blinding", TestCase(blinding_test, {}))
+    with open("private_key.rsa") as file:
+        key = import_key(file.read())
+    add_tests(server, key)
     server.run()
 
 

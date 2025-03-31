@@ -1,6 +1,7 @@
 """Eval server module."""
 
 import json
+import traceback
 import socketserver
 from typing import Callable, Dict, Any, Tuple
 from dataclasses import dataclass
@@ -28,11 +29,7 @@ class EvalServer(socketserver.TCPServer):
         self.host: str = host
         self.port: int = port
 
-    def add_test(
-        self,
-        name: str,
-        test: TestCase
-    ) -> None:
+    def add_test(self, name: str, test: TestCase) -> None:
         """Registers a new test case with a given name, validation function, and metadata.
 
         Args:
@@ -66,6 +63,7 @@ class EvalServer(socketserver.TCPServer):
                 self.save_results()
                 return {"test": test_name, "correct": correct, "message": message}
             except Exception as e:
+                traceback.print_exc()
                 return {"test": test_name, "error": str(e)}
         return {"test": test_name, "error": "Test not found"}
 
@@ -104,4 +102,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
