@@ -5,6 +5,7 @@ import traceback
 import socketserver
 from typing import Callable, Dict, Any, Tuple
 from dataclasses import dataclass
+from collections import defaultdict
 
 
 @dataclass
@@ -77,6 +78,19 @@ class EvalServer(socketserver.TCPServer):
             self.server_close()  # Closes the socket
             print("Server stopped.")
 
+    def calculate_scores(self) -> Dict[str, int]:
+        """Calculates and returns the total score for each player based on completed tests."""
+        scores = defaultdict(int)
+
+        for player, results in self.results.items():
+            for test_name, correct in results.items():
+                if correct and test_name in self.tests:
+                    test_case = self.tests[test_name]
+                    score = test_case.metadata.get("score", 0)
+                    scores[player] += int(score)
+
+        return dict(scores)
+
 
 class EvalRequestHandler(socketserver.BaseRequestHandler):
     """Handles incoming player requests by evaluating their answers."""
@@ -93,12 +107,3 @@ class EvalRequestHandler(socketserver.BaseRequestHandler):
         except (json.JSONDecodeError, KeyError):
             response = {"error": "Invalid request format"}
         self.request.sendall(json.dumps(response).encode("utf-8"))
-
-
-def main():
-    eval_server = EvalServer()
-    eval_server.add_test()
-
-
-if __name__ == "__main__":
-    main()
