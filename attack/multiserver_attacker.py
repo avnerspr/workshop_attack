@@ -3,6 +3,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 from attack.oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
 from attack.disjoint_segments import DisjointSegments
+from attack.create_attack_config import get_cipher, get_public
 from random import randint
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain, count, islice, cycle
@@ -374,19 +375,7 @@ class MultiServerAttacker:
             self.iteration += 1
 
 
-def get_cipher() -> int:
-    msg = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent quis tortor eget lacus viverra tristique pharetra. "
-    with open("public_key.rsa", "rb") as key_file:
-        pub_key = RSA.import_key(key_file.read())
-    cipher_rsa = PKCS1_v1_5.new(pub_key)
-
-    return bytes_to_long(cipher_rsa.encrypt(msg))
-
-
 if __name__ == "__main__":
-    with open("attack/servers_addr.json", "r") as file:
-        params = json.load(file)
-
     my_args = attack_arguments_parser()
 
     num_of_threads: int = 5
@@ -403,10 +392,12 @@ if __name__ == "__main__":
 
     HOSTS = [host] * num_of_threads
     PORTS = [base_port + i for i in range(num_of_threads)]
+    N, E = get_public()
+    C = get_cipher("hello world")
     attacker = MultiServerAttacker(
-        params["N"],
-        params["E"],
-        params["C"],
+        N,
+        E,
+        C,
         HOSTS,
         PORTS,
         my_args.random,
