@@ -23,13 +23,10 @@ def get_arguments() -> Namespace:
 
 
 def add_tests(server: EvalServer, key: RsaKey):
-    message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
-    C = get_cipher(message)
-
     blinding_test = tests.outer_test_blinding(key, ctf_params.level_1_C)
     server.add_test("blinding", TestCase(blinding_test, {}))
 
-    twoA_test = tests.outer_test_level_2a(key, C)
+    twoA_test = tests.outer_test_level_2a(key, ctf_params.level_2_C0)
     server.add_test("2a", TestCase(twoA_test, {}))
 
 
