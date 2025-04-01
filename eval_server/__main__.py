@@ -1,3 +1,5 @@
+import ctf_params
+
 import eval_server.tests as tests
 from eval_server.eval_server import EvalServer, TestCase
 from attack.create_attack_config import get_cipher
@@ -24,7 +26,7 @@ def add_tests(server: EvalServer, key: RsaKey):
     message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra orci ac nisi auctor."
     C = get_cipher(message)
 
-    blinding_test = tests.outer_test_blinding(key, C)
+    blinding_test = tests.outer_test_blinding(key, ctf_params.level_1_C)
     server.add_test("blinding", TestCase(blinding_test, {}))
 
     twoA_test = tests.outer_test_level_2a(key, C)
