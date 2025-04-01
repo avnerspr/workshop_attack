@@ -388,12 +388,14 @@ if __name__ == "__main__":
 
     host = "localhost"
     if my_args.host:
-        base_port = my_args.host
+        host = my_args.host
 
     HOSTS = [host] * num_of_threads
     PORTS = [base_port + i for i in range(num_of_threads)]
     N, E = get_public()
-    C = get_cipher("hello world")
+    C = get_cipher(
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In fringilla gravida scelerisque. Pellentesque a nisl quam."
+    )
     attacker = MultiServerAttacker(
         N,
         E,
