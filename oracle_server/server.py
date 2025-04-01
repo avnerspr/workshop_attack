@@ -99,7 +99,7 @@ def server_loop(
         while True:
             try:
                 data = conn.recv(KEY_SIZE // 8)
-                sleep(0.001)
+                # sleep(0.001)
                 if not data:
                     print(f"server: {port} closed: {addr}")
                     break

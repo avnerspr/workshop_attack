@@ -1,11 +1,10 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
-import ctf_params
+import eval_server.ctf_params as ctf_params
+from eval_server.ctf_answers import level_6_answer
 
 import eval_server.tests as tests
 from eval_server.eval_server import EvalServer, TestCase
-from attack.create_attack_config import get_cipher
 
-from typing import Callable, Dict, Any, Tuple
 from argparse import ArgumentParser, Namespace
 
 from Crypto.PublicKey.RSA import import_key, RsaKey
@@ -17,8 +16,12 @@ def get_arguments() -> Namespace:
         description="Run this to open a port for players to send their CTF answers to.",
     )
 
-    parser.add_argument("-p", "--port", help="The port to run the server on")
-    parser.add_argument("--host", help="The host to run the server on")
+    parser.add_argument(
+        "-p", "--port", help="The port to run the server on", default=9999
+    )
+    parser.add_argument(
+        "--host", help="The host to run the server on", default="localhost"
+    )
 
     return parser.parse_args()
 
@@ -66,8 +69,7 @@ def add_tests(server: EvalServer, key: RsaKey):
         TestCase(level5_test, {"score": ctf_params.level_5_score}),
     )
 
-    super_secret_message = b"The Nine Lives of the CAT"
-    level6_test = tests.outer_test_final_level(bytes_to_long(super_secret_message))
+    level6_test = tests.outer_test_final_level(level_6_answer)
     server.add_test(
         ctf_params.level_6_name,
         TestCase(level6_test, {"score": ctf_params.level_6_score}),

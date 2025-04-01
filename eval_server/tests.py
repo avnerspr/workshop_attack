@@ -7,6 +7,8 @@ from typing import Any, Tuple, List
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.PublicKey.RSA import RsaKey
 
+from eval_server.ctf_answers import level_2_answer, level_3_answer, level_4_answer
+
 
 def ceil_div(x: int, y: int) -> int:
     return (x + y - 1) // y
@@ -148,7 +150,7 @@ def outer_test_level_2a(key: RsaKey, C0: int):  # Challenge #2
             s1 = int(s1)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if s1 == search_start(C0, list(), key):
+        if s1 == level_2_answer:
             return (
                 True,
                 "You successfully solved level 2.",
@@ -176,7 +178,7 @@ def outer_test_level_2b(
             s = int(s)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if s == search_mulitiple_intervals(C, [prev_s], key):
+        if s == level_3_answer:
             return (
                 True,
                 "You successfully solved level 3.",
@@ -192,21 +194,21 @@ def outer_test_level_2b(
 #     global B
 #     C0, s0 = blinding(N, E, C)
 #     return {}
-    # s_list = [s0]
-    # M: DisjointSegments = DisjointSegments([range(2 * B, 3 * B)])
-    # MAX_ITER = 1_000_000
-    # for iteration in range(1, MAX_ITER + 1):
-    #     # steps 2-4
-    #     res, M = algo_iteration(C0, M, s_list, iteration)
-    #     if res:
-    #         assert isinstance(M, int)
-    #         result = M
-    #         ans_num = result * pow(s0, -1, N) % N
-    #         ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-    #         print(f"{ans = }")
-    #         break
+# s_list = [s0]
+# M: DisjointSegments = DisjointSegments([range(2 * B, 3 * B)])
+# MAX_ITER = 1_000_000
+# for iteration in range(1, MAX_ITER + 1):
+#     # steps 2-4
+#     res, M = algo_iteration(C0, M, s_list, iteration)
+#     if res:
+#         assert isinstance(M, int)
+#         result = M
+#         ans_num = result * pow(s0, -1, N) % N
+#         ans = long_to_bytes(ans_num, KEY_SIZE // 8)
+#         print(f"{ans = }")
+#         break
 
-    # update_intervals(N, prev_M, prev_s, B)
+# update_intervals(N, prev_M, prev_s, B)
 
 
 def outer_test_level_2c(
@@ -223,17 +225,14 @@ def outer_test_level_2c(
             return False, "Attempt failed. Incorrect value format"
 
         # if (r, s) == search_single_interval(N,E,C,list(M)[0], [prev_s],B):
-        if (
-            s
-            == search_single_interval(key.n, key.e, C, list(M)[0], [prev_s], B, key)[1]
-        ):
+        if s == level_4_answer:
             return (
                 True,
                 "You successfully solved level 4.",
             )
 
         else:
-            return False, "Attempt failed. Incorrect value of r,s"
+            return False, "Attempt failed. Incorrect value of s"
 
     return test_level_2c
 
