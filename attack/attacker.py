@@ -41,7 +41,6 @@ def attack_arguments_parser() -> argparse.Namespace:
 
 
 class Attacker:
-
     def __init__(
         self,
         N: int,
@@ -160,7 +159,7 @@ class Attacker:
             for r in r_range:
                 pos_sol_range = range(
                     max(a, ceil_div(2 * self.B + r * self.N, s_i)),
-                    (min(b, (((3 * self.B - 1 + r * self.N) // s_i))) + 1),
+                    (min(b, ((3 * self.B - 1 + r * self.N) // s_i)) + 1),
                 )
 
                 M_res.add(pos_sol_range)
