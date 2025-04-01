@@ -1,6 +1,3 @@
-from attack.bleichenbacher import (
-    ceil_div,
-)
 from utils.attack_utils import search_start, search_mulitiple_intervals
 from utils.rsa import check_padding_private_key
 from attack.disjoint_segments import DisjointSegments
@@ -9,6 +6,11 @@ from random import randint
 from typing import Any, Tuple, List
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.PublicKey.RSA import RsaKey
+
+
+def ceil_div(x: int, y: int) -> int:
+    return (x + y - 1) // y
+
 
 BITS_LENGTH = 1024
 E = 65537
