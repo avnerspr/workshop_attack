@@ -9,9 +9,8 @@ from utils.rsa import check_padding
 from attack.disjoint_segments import DisjointSegments
 from Crypto.PublicKey import RSA
 from random import randint
-from typing import Any, Tuple
+from typing import Any, Tuple, List
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-
 
 
 BITS_LENGTH = 1024
@@ -47,6 +46,25 @@ D_VALUES = [
 ]
 
 
+# def s_oracle(C: int, s: int) -> bool:
+#     return oracle(C * pow(s, E, N) % N, conn)
+
+
+# def find_next_conforming(C: int, start: int, N: int) -> int:
+#     ctr = 0
+#     for s in range(start, N):
+#         ctr += 1
+#         if s_oracle(C, s):
+#             return s
+        
+
+
+# def search_mulitiple_intervals(C: int, s_list: List[int], N: int) -> int:
+#     s_i = find_next_conforming(C, s_list[-1] + 1, N)
+#     s_list.append(s_i)
+#     return s_i
+
+
 def string_to_DisjointSegments(M: str):
     return DisjointSegments.deserialize(M)
 
@@ -66,6 +84,7 @@ def blinding(N: int, E: int, C: int) -> Tuple[int, int]:
         C0 = C * pow(s0, E, N) % N
         if check_padding(C0):
             return C0, s0
+    return 0,0
 
 
 def search_single_interval(
@@ -107,7 +126,7 @@ def update_intervals(
 
 def outer_test_blinding(N: int, E: int, C: int):  # Challenge #1
 
-    def test_blinding(s: str):
+    def test_blinding(s):
         try:
             s = int(s)
         except:
@@ -157,7 +176,7 @@ def outer_test_level_2b(
 ):  # Challenge #3
     # |M| > 1
 
-    def test_level_2b(s: str):
+    def test_level_2b(s):
         try:
             s = int(s)
         except:
@@ -177,6 +196,7 @@ def get_params_level_2b(key: RSA.RsaKey) -> dict[str, str]: #TODO implement
     m, N, E, C = get_params_mNEC(level_num=3)
     global B
     C0, s0 = blinding(N, E, C)
+    return {}
     # s_list = [s0]
     # M: DisjointSegments = DisjointSegments([range(2 * B, 3 * B)])
     # MAX_ITER = 1_000_000
@@ -199,7 +219,7 @@ def outer_test_level_2c(
 ):  # Challenge #4
     # |M| == 1
 
-    def test_level_2c(s: str):
+    def test_level_2c(s):
         try:
             # r,s = r_s.split(",")
             # r, s = int(r), int(s)
@@ -251,7 +271,7 @@ def get_params_compute_M():
 
 def outer_test_final_level(message: int):  # Challenge #6
 
-    def test_final_level(m: str):
+    def test_final_level(m):
         try:
             m = int(m)
         except:
