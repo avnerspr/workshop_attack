@@ -1,29 +1,26 @@
 from attack.bleichenbacher import (
-    search_mulitiple_intervals,
-    search_single_interval,
     ceil_div,
-    search_start,
-    blinding,
 )
-from utils.rsa import check_padding
+from utils.attack_utils import search_start, search_mulitiple_intervals
+from utils.rsa import check_padding_private_key
 from attack.disjoint_segments import DisjointSegments
 from Crypto.PublicKey import RSA
 from random import randint
 from typing import Any, Tuple, List
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-
+from Crypto.PublicKey.RSA import RsaKey
 
 BITS_LENGTH = 1024
 E = 65537
 B = 1 << (BITS_LENGTH - 16)
 
 MESSAGES = [
- 77319936973372202217725276511797052350780493672174214652361474566481436230955858621081107670328511060511343668536635801544575018540889821003795139431832435663810014544708224110454983085985398547132552583805570626169402854830358970613823095819997383235855435856420284152872280769461172005611654586146640405676,
- 71503456340598790086938996844327141295328350973669060615337969981676381503369982705706557333159744669103112175676052429009584888302211187971393254752011356732647480652751381600638693900980621474149649183116366745183817294884026289394093816029198858360499488411868823032975620989483996560312495620396652504098,
- 58019217544429473235420433748759290094343518930348825471886608004224315553041617633570714283185434572557079820380095748901236811547183517994542481358893834428238926353356721830617860977842737063175186053711790669945206393027577014155102564012876614988717689643025620165328665196127455069166084616745060988337,
- 30052992333412718285889483248871581681665442866625079365289826633852915978404616204020589984064970190349240274744401983284550959494538938641413585956205026734283303476941564917316718208191684486306434491898402902045686604522272546209195374028699985934056679139570777010641047212784866249442549952396144182619,
- 48305842538243975485467575547965300177790755879716534916152217685174314012771335082562744527979809745230110779825546678989395994696110838958027077951305783213997847480332393202658036301263083320941866327445875514146449677532351874276345858042756702909341633768158843770074798394344561172189969739095830159235,
- 57869433958850346942604501096326555572328695362443782976703796615080588246942514291472944988969932880585570939017514684976153289648651945929146104267562385758877452176617120392970270877540294809394307429724499430236578710811556316073215629297190515615067376052251504983479101029910327193090149210966055616386,
+    77319936973372202217725276511797052350780493672174214652361474566481436230955858621081107670328511060511343668536635801544575018540889821003795139431832435663810014544708224110454983085985398547132552583805570626169402854830358970613823095819997383235855435856420284152872280769461172005611654586146640405676,
+    71503456340598790086938996844327141295328350973669060615337969981676381503369982705706557333159744669103112175676052429009584888302211187971393254752011356732647480652751381600638693900980621474149649183116366745183817294884026289394093816029198858360499488411868823032975620989483996560312495620396652504098,
+    58019217544429473235420433748759290094343518930348825471886608004224315553041617633570714283185434572557079820380095748901236811547183517994542481358893834428238926353356721830617860977842737063175186053711790669945206393027577014155102564012876614988717689643025620165328665196127455069166084616745060988337,
+    30052992333412718285889483248871581681665442866625079365289826633852915978404616204020589984064970190349240274744401983284550959494538938641413585956205026734283303476941564917316718208191684486306434491898402902045686604522272546209195374028699985934056679139570777010641047212784866249442549952396144182619,
+    48305842538243975485467575547965300177790755879716534916152217685174314012771335082562744527979809745230110779825546678989395994696110838958027077951305783213997847480332393202658036301263083320941866327445875514146449677532351874276345858042756702909341633768158843770074798394344561172189969739095830159235,
+    57869433958850346942604501096326555572328695362443782976703796615080588246942514291472944988969932880585570939017514684976153289648651945929146104267562385758877452176617120392970270877540294809394307429724499430236578710811556316073215629297190515615067376052251504983479101029910327193090149210966055616386,
 ]
 
 
@@ -56,7 +53,6 @@ D_VALUES = [
 #         ctr += 1
 #         if s_oracle(C, s):
 #             return s
-        
 
 
 # def search_mulitiple_intervals(C: int, s_list: List[int], N: int) -> int:
@@ -75,28 +71,26 @@ def get_params_mNEC(level_num):
     m = MESSAGES[index]
     N = N_VALUES[index]
     d = D_VALUES[index]
-    C = pow(m,E, N)
+    C = pow(m, E, N)
     return m, N, E, C
 
 
-def blinding(N: int, E: int, C: int) -> Tuple[int, int]:
+def blinding(N: int, E: int, C: int, key: RsaKey) -> Tuple[int, int]:
     for s0 in range(1, N):
         C0 = C * pow(s0, E, N) % N
-        if check_padding(C0):
+        if check_padding_private_key(long_to_bytes(C0), key):
             return C0, s0
-    return 0,0
+    return 0, 0
 
 
 def search_single_interval(
-    N: int, E: int, C: int, interval: range, s_list: list[int], B: int
+    N: int, E: int, C: int, interval: range, s_list: list[int], B: int, key: RsaKey
 ):
-
     a, b = interval.start, interval.stop - 1
     for r_i in range(2 * ceil_div(b * s_list[-1] - 2 * B, N), N):
         s_i = ceil_div(2 * B + r_i * N, b)
         if s_i * a < (3 * B + r_i * N):
-            if check_padding(C * pow(s_i, E) % N):
-
+            if check_padding_private_key(long_to_bytes(C * pow(s_i, E) % N), key):
                 s_list.append(s_i)
                 return r_i, s_i
 
@@ -115,7 +109,7 @@ def update_intervals(
         for r in r_range:
             pos_sol_range = range(
                 max(a, ceil_div(2 * B + r * N, prev_s)),
-                (min(b, (((3 * B - 1 + r * N) // prev_s))) + 1),
+                (min(b, ((3 * B - 1 + r * N) // prev_s)) + 1),
             )
 
             M_res.add(pos_sol_range)
@@ -124,17 +118,17 @@ def update_intervals(
     return M_res
 
 
-def outer_test_blinding(N: int, E: int, C: int):  # Challenge #1
-
-    def test_blinding(s):
+def outer_test_blinding(key: RsaKey, C: int):  # Challenge #1
+    def test_blinding(s: str):
         try:
             s = int(s)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if check_padding(C * pow(s, E) % N):
+        with_s = long_to_bytes(C * pow(s, key.e) % key.n)
+        if check_padding_private_key(with_s, key):
             return (
                 True,
-                'You successfully solved level 1. The flag for the next level is "secret_flag_3Kf03JF2hmfc3IxM"',
+                "You successfully solved level 1.",
             )
         else:
             return False, "Attempt failed. Incorrect blinding value"
@@ -147,17 +141,16 @@ def get_params_blinding() -> dict[str, Any]:
     return {"N": str(N), "E": str(E), "C": str(C)}
 
 
-def outer_test_level_2a(N: int, E: int, C0: int):  # Challenge #2
-
+def outer_test_level_2a(key: RsaKey, C0: int):  # Challenge #2
     def test_level_2a(s1):
         try:
             s1 = int(s1)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if s1 == search_start(C0, list()):
+        if s1 == search_start(C0, list(), key):
             return (
                 True,
-                'You successfully solved level 2. The flag for the next level is "secret_flag_G5kqD94kd0soFjZ1"',
+                "You successfully solved level 2.",
             )
 
         else:
@@ -168,11 +161,12 @@ def outer_test_level_2a(N: int, E: int, C0: int):  # Challenge #2
 
 def get_params_level_2a(key: RSA.RsaKey) -> dict[str, str]:
     m, N, E, C = get_params_mNEC(level_num=2)
-    C0, s0 = blinding(N, E, C)
+    C0, s0 = blinding(N, E, C, key)
     return {"N": str(N), "E": str(E), "C0": str(C0)}
 
+
 def outer_test_level_2b(
-    N: int, E: int, C: int, M: DisjointSegments, prev_s: int
+    key: RsaKey, C: int, M: DisjointSegments, prev_s: int
 ):  # Challenge #3
     # |M| > 1
 
@@ -181,10 +175,10 @@ def outer_test_level_2b(
             s = int(s)
         except:
             return False, "Attempt failed. Incorrect value format"
-        if s == search_mulitiple_intervals(C, [prev_s]):
+        if s == search_mulitiple_intervals(C, [prev_s], key):
             return (
                 True,
-                'You successfully solved level 3. The flag for the next level is "secret_flag_3nG9fL4ofpEj46vj"',
+                "You successfully solved level 3.",
             )
         else:
             return False, "Attempt failed. Incorrect value of s"
@@ -192,7 +186,7 @@ def outer_test_level_2b(
     return test_level_2b
 
 
-def get_params_level_2b(key: RSA.RsaKey) -> dict[str, str]: #TODO implement
+def get_params_level_2b(key: RSA.RsaKey) -> dict[str, str]:  # TODO implement
     m, N, E, C = get_params_mNEC(level_num=3)
     global B
     C0, s0 = blinding(N, E, C)
@@ -215,7 +209,7 @@ def get_params_level_2b(key: RSA.RsaKey) -> dict[str, str]: #TODO implement
 
 
 def outer_test_level_2c(
-    N: int, E: int, C: int, M: DisjointSegments, prev_s: int, B
+    key: RsaKey, C: int, M: DisjointSegments, prev_s: int, B
 ):  # Challenge #4
     # |M| == 1
 
@@ -228,10 +222,13 @@ def outer_test_level_2c(
             return False, "Attempt failed. Incorrect value format"
 
         # if (r, s) == search_single_interval(N,E,C,list(M)[0], [prev_s],B):
-        if s == search_single_interval(N, E, C, list(M)[0], [prev_s], B)[1]:
+        if (
+            s
+            == search_single_interval(key.n, key.e, C, list(M)[0], [prev_s], B, key)[1]
+        ):
             return (
                 True,
-                'You successfully solved level 4. The flag for the next level is "secret_flag_5Kfk19fqeJ61jsm3"',
+                "You successfully solved level 4.",
             )
 
         else:
@@ -239,25 +236,25 @@ def outer_test_level_2c(
 
     return test_level_2c
 
+
 def get_params_level_2c():
     m, N, E, C = get_params_mNEC(level_num=4)
-    pass # TODO implement
+    pass  # TODO implement
 
 
 def outer_test_compute_M(
-    N: int, E: int, C: int, prev_M: DisjointSegments, prev_s: int, B: int
+    key: RsaKey, C: int, prev_M: DisjointSegments, prev_s: int, B: int
 ):  # Challenge #5
-
     def test_compute_M(M: str):
         try:
             M = string_to_DisjointSegments(M)
         except:
             return False, "Attempt failed. Incorrect value format"
 
-        if M == update_intervals(N, prev_M, prev_s, B):
+        if DisjointSegments.compare(M, update_intervals(key.n, prev_M, prev_s, B)):
             return (
                 True,
-                'You successfully solved level 5. The flag for the next level is "secret_flag_o1q9cMf43kVl2a6x"',
+                "You successfully solved level 5.",
             )
         else:
             return False, "Attempt failed. Incorrect value of M"
@@ -267,11 +264,11 @@ def outer_test_compute_M(
 
 def get_params_compute_M():
     m, N, E, C = get_params_mNEC(level_num=5)
-    pass # TODO implement
+    pass  # TODO implement
+
 
 def outer_test_final_level(message: int):  # Challenge #6
-
-    def test_final_level(m):
+    def test_final_level(m: str):
         try:
             m = int(m)
         except:
@@ -280,7 +277,7 @@ def outer_test_final_level(message: int):  # Challenge #6
         if m == message:
             return (
                 True,
-                'You successfully solved level 6. The flag for the next level is "secret_flag_p0voqE4iUv0Q8t35"',
+                "You successfully solved level 6.",
             )
         else:
             return False, "Attempt failed. Incorrect value of M"
@@ -290,7 +287,7 @@ def outer_test_final_level(message: int):  # Challenge #6
 
 def get_params_final_level():
     m, N, E, C = get_params_mNEC(level_num=6)
-    pass #TODO implement
+    pass  # TODO implement
 
 
 TESTERS = [
@@ -304,7 +301,7 @@ TESTERS = [
 
 
 GET_PARAMS = [
-    get_params_blinding, 
+    get_params_blinding,
     get_params_level_2a,
     get_params_level_2b,
     get_params_level_2c,
@@ -313,7 +310,7 @@ GET_PARAMS = [
 ]
 
 NAMES = [
-    "blinding", 
+    "blinding",
     "level_2a",
     "level_2b",
     "level_2c",

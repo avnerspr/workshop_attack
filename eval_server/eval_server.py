@@ -1,9 +1,11 @@
 """Eval server module."""
 
 import json
+import traceback
 import socketserver
 from typing import Callable, Dict, Any, Tuple
 from dataclasses import dataclass
+from collections import defaultdict
 
 
 @dataclass
@@ -28,11 +30,7 @@ class EvalServer(socketserver.TCPServer):
         self.host: str = host
         self.port: int = port
 
-    def add_test(
-        self,
-        name: str,
-        test: TestCase
-    ) -> None:
+    def add_test(self, name: str, test: TestCase) -> None:
         """Registers a new test case with a given name, validation function, and metadata.
 
         Args:
@@ -66,6 +64,7 @@ class EvalServer(socketserver.TCPServer):
                 self.save_results()
                 return {"test": test_name, "correct": correct, "message": message}
             except Exception as e:
+                traceback.print_exc()
                 return {"test": test_name, "error": str(e)}
         return {"test": test_name, "error": "Test not found"}
 
@@ -78,6 +77,19 @@ class EvalServer(socketserver.TCPServer):
             print("\nShutting down server gracefully...")
             self.server_close()  # Closes the socket
             print("Server stopped.")
+
+    def calculate_scores(self) -> Dict[str, int]:
+        """Calculates and returns the total score for each player based on completed tests."""
+        scores = defaultdict(int)
+
+        for player, results in self.results.items():
+            for test_name, correct in results.items():
+                if correct and test_name in self.tests:
+                    test_case = self.tests[test_name]
+                    score = test_case.metadata.get("score", 0)
+                    scores[player] += int(score)
+
+        return dict(scores)
 
 
 class EvalRequestHandler(socketserver.BaseRequestHandler):
@@ -95,13 +107,3 @@ class EvalRequestHandler(socketserver.BaseRequestHandler):
         except (json.JSONDecodeError, KeyError):
             response = {"error": "Invalid request format"}
         self.request.sendall(json.dumps(response).encode("utf-8"))
-
-
-def main():
-    eval_server = EvalServer()
-    eval_server.add_test()
-
-
-if __name__ == "__main__":
-    main()
-
