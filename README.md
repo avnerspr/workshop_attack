@@ -61,5 +61,7 @@ Also make sure that `eval_server/eval_client.py` is configured with the correct 
     See `python -m oracle_server.server --help` for additional details.
 2. To run the evaluation server (to which players send their answers), run `python -m eval_server`.
     See `python -m eval_server --help` for additional configuration and details. Make sure the players
-    know to use the provided interface (`eval_server/eval_client.py`) to interact with the server.
+    know to use the provided interface (`eval_server/eval_client.py`) to interact with the server. 
+    **NOTE**: Do not run `oracle_server.server` with the `-k` tag, as that will override the existing
+    RSA keys.
 
