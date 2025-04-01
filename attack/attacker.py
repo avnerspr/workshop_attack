@@ -1,8 +1,5 @@
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_v1_5
-from math import ceil, floor
-from attack.oracle import oracle, init_oracle, KEY_SIZE, ServerClosed
+from attack.oracle import oracle, init_oracle, ServerClosed
 from attack.disjoint_segments import DisjointSegments
 from random import randint
 from icecream import ic
@@ -60,6 +57,8 @@ class Attacker:
                 self.s_list.append(s0)
                 return self.C, s0
 
+        raise ValueError("blinding failed")
+
     def find_next_conforming(self, start: int) -> int:
         ctr = 0
         for s in range(start, self.N):
@@ -68,6 +67,8 @@ class Attacker:
                 return s
             if ctr % 10_000 == 0:
                 ic(ctr)
+
+        raise ValueError("no next conforming")
 
     def search_start(self) -> int:
         s1 = self.find_next_conforming(self.N // (3 * self.B) + 1)
@@ -157,7 +158,6 @@ class Attacker:
             if len(self.M) == 1:
                 M_lst: list[range] = list(iter(self.M))
                 if M_lst[0].stop - M_lst[0].start <= 1:
-                    # answer = M_lst[0].start * pow(self.s_list[0], -1, self.N) % self.N
                     return True, M_lst[0]  # found solution
 
             return False, self.M
@@ -173,11 +173,6 @@ class Attacker:
             res, ans = self.algo_iteration()
             if res:
                 assert isinstance(ans, range)
-
-                # result = ans
-                # ans_num = result * pow(self.s0, -1, self.N) % self.N
-                # ans = long_to_bytes(ans_num, KEY_SIZE // 8)
-                # print(f"{ans = }")
                 self.conn.shutdown(SHUT_RDWR)
                 self.conn.close()
                 return ans, self.s0
