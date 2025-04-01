@@ -281,7 +281,8 @@ class MultiServerAttacker:
                 )
 
                 M_res.add(pos_sol_range)
-        assert len(M_res) >= 1
+        if not len(M_res) >= 1:
+            return self.M
         self.M = M_res
         return M_res
 

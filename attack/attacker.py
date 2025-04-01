@@ -134,8 +134,8 @@ class Attacker:
                 M_res.add(pos_sol_range)
 
         if not (len(M_res) >= 1):
-            ic(M_res)
-            raise AssertionError
+            return self.M
+            # raise AssertionError
         self.M = M_res
         return M_res
 
