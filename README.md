@@ -1,14 +1,46 @@
-# workshop_attack
+# **Workshop Attack - Bleichenbacher Attack Implementation**  
 
-## Usage
+## **Prerequisites**  
 
-Install `<gmp.h>` and `<gmpxx.h>` with:
+Before compiling and running the attack, install the required libraries:  
 
-```sudo apt-get install libgmp-dev libgmpxx-dev```
+```bash
+sudo apt-get install libgmp-dev libgmpxx-dev
+```
 
-Compile `utils/LLL/lll.cpp` with:
+## **Compilation**  
 
-```g++ utils/LLL/lll.cpp -shared -o utils/LLL/liblll.so -fPIC -lgmpxx -lgmp```
+Compile the `LLL` implementation:  
 
-You can then use lll.py to interface with the C++ LLL implementation. Make sure to pass the path of
-the ".so" file to the "LLLWrapper".
+```bash
+g++ utils/LLL/lll.cpp -shared -o utils/LLL/liblll.so -fPIC -lgmpxx -lgmp
+```
+
+## **Usage**  
+
+You can interface with the C++ LLL implementation using `lll.py`.  
+Make sure to pass the path of the `.so` file to `LLLWrapper`.  
+
+## **Attack Implementation**  
+
+The `attack` module contains three attack classes:  
+- `Attacker`  
+- `MultiServerAttacker`  
+- `ParallelAttack`  
+
+### **Running the Attack**  
+
+1. Start the server:  
+   ```bash
+   python -m oracle_server.server
+   ```
+2. Run the attack:  
+   ```bash
+   python -m attack.<attack-name>
+   ```  
+   Replace `<attack-name>` with one of the available attack classes (`attacker`, `multiserver_attacker`, or `parallel_attack`).  
+
+Each attack module is configurable via command-line arguments. Use the `-h` flag to see available options:  
+
+```bash
+python -m attack.<attack-name> -h
