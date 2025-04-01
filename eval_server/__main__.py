@@ -1,3 +1,4 @@
+from Crypto.Util.number import bytes_to_long, long_to_bytes
 import ctf_params
 
 import eval_server.tests as tests
@@ -23,11 +24,54 @@ def get_arguments() -> Namespace:
 
 
 def add_tests(server: EvalServer, key: RsaKey):
+    B = pow(2, 8 * (len(long_to_bytes(key.n)) - 2))
+
     blinding_test = tests.outer_test_blinding(key, ctf_params.level_1_C)
-    server.add_test("blinding", TestCase(blinding_test, {}))
+    server.add_test(
+        ctf_params.level_1_name,
+        TestCase(blinding_test, {"score": ctf_params.level_1_score}),
+    )
 
     twoA_test = tests.outer_test_level_2a(key, ctf_params.level_2_C0)
-    server.add_test("2a", TestCase(twoA_test, {}))
+    server.add_test(
+        ctf_params.level_2_name,
+        TestCase(twoA_test, {"score": ctf_params.level_2_score}),
+    )
+
+    twoB_test = tests.outer_test_level_2b(
+        key, ctf_params.level_3_C, ctf_params.level_3_M, ctf_params.level_3_prev_s
+    )
+    server.add_test(
+        ctf_params.level_3_name,
+        TestCase(twoB_test, {"score": ctf_params.level_3_score}),
+    )
+
+    twoC_test = tests.outer_test_level_2c(
+        key, ctf_params.level_4_C, ctf_params.level_4_M, ctf_params.level_4_prev_s, B
+    )
+    server.add_test(
+        ctf_params.level_4_name,
+        TestCase(twoC_test, {"score": ctf_params.level_4_score}),
+    )
+
+    level5_test = tests.outer_test_compute_M(
+        key,
+        ctf_params.level_5_C,
+        ctf_params.level_5_prev_M,
+        ctf_params.level_5_prev_s,
+        B,
+    )
+    server.add_test(
+        ctf_params.level_5_name,
+        TestCase(level5_test, {"score": ctf_params.level_5_score}),
+    )
+
+    super_secret_message = b"The Nine Lives of the CAT"
+    level6_test = tests.outer_test_final_level(bytes_to_long(super_secret_message))
+    server.add_test(
+        ctf_params.level_6_name,
+        TestCase(level6_test, {"score": ctf_params.level_6_score}),
+    )
 
 
 def main():
