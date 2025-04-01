@@ -44,3 +44,22 @@ Each attack module is configurable via command-line arguments. Use the `-h` flag
 
 ```bash
 python -m attack.<attack-name> -h
+```
+
+
+# Running the CTF
+
+## Setup
+
+Make sure the players have the files `eval_server/ctf_params.py` and `eval_server/eval_client.py`
+Additionally, make sure they have the attached PDF file with instructions (in Hebrew).
+Also make sure that `eval_server/eval_client.py` is configured with the correct port and host.
+
+## Running the Servers
+
+1. To run the oracle server, use `python -m oracle_server.server`. 
+    See `python -m oracle_server.server --help` for additional details.
+2. To run the evaluation server (to which players send their answers), run `python -m eval_server`.
+    See `python -m eval_server --help` for additional configuration and details. Make sure the players
+    know to use the provided interface (`eval_server/eval_client.py`) to interact with the server.
+
