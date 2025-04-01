@@ -15,7 +15,7 @@ import json
 
 
 LLL = LLLWrapper(
-    Path("attack/LLL/liblll.so")
+    Path("utils/LLL/liblll.so")
 )  # ! maybe should return a list[list[int]] instead of list[list[float]]
 lll = LLL.lll
 
@@ -132,7 +132,7 @@ class ParallelAttacker:
         result = attacker.attack()
         return result
 
-    def attack(self) -> int:
+    def attack(self) -> int | None:
         """
         Starts the parallelized attack using multiple attackers in separate processes.
 
@@ -158,7 +158,9 @@ class ParallelAttacker:
 
         return self.conclusion(range_list, s0_list, si_list)
 
-    def conclusion(self, ranges: list[range], S0: list[int], Si: list[int]) -> int:
+    def conclusion(
+        self, ranges: list[range], S0: list[int], Si: list[int]
+    ) -> int | None:
         """
         Concludes the attack using the LLL algorithm to compute the plaintext message from the attacker's results.
 
@@ -181,14 +183,15 @@ class ParallelAttacker:
             for i in range(self.attacker_count)
         ]
 
-        M = matrix(ZZ, [v0] + middle + [vf])
-        reduced_basis = list(M.LLL())
+        M = [v0] + middle + [vf]
+        reduced_basis = lll(M)
         reduced_basis.sort(key=vec_norm)
         for R in reduced_basis:
-            # R = reduced_basis[-1]
-            for i in range(len(R) - 1):
-                m = (((-R[i] % self.N) + vf[i]) * pow(S0[i], -1, self.N)) % self.N
-        return m
+            m = ((abs(R[0]) + vf[0]) * pow(S0[0], -1, self.N)) % self.N
+            if pow(m, self.E, self.N) == self.ct:
+                return m
+
+        return None
 
 
 def vec_norm(vec: list[int]) -> int:
