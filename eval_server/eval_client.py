@@ -2,7 +2,7 @@ from typing import Any
 import socket
 import json
 
-SERVER_ADDRESS = ("localhost", 9999)  # Replace with the actual server address and port
+SERVER_ADDRESS = ("localhost", 8888)  # Replace with the actual server address and port
 
 
 def send_answer(player_name: str, test_name: str, answer: Any) -> dict:
